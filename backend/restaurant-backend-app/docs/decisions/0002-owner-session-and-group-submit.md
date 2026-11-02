@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-11-02
-- **Commit:** not committed yet
+- **Commit:** 7767a75
 - **Area:** backend (`api-handler` Lambda), API Gateway config (Syndicate)
 
 ## Context
@@ -82,14 +82,14 @@ These come from the task discussion on 2026-11-02:
 
 ## Alternatives considered
 
-| Alternative | Why we did not choose it |
-|---|---|
+| Alternative                                                            | Why we did not choose it                                                                                                                                                                                   |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Two separate saves: `SaveOrderAsync`, then `SaveGroupReservationAsync` | A failure between the two writes leaves the order submitted and the group open, or the opposite. A parallel submit can also merge the guest dishes two times. The user chose the transaction (decision 7). |
-| Random GUID as the owner session id | Two parallel first calls create two owner sessions. The fixed id `owner-{groupReservationId}` makes the create idempotent. |
-| Count owner sessions as guests | An owner session takes a guest place, and the guest limit becomes wrong. |
-| `POST /group-reservations/{groupReservationId}/submit` (task text) | Other group routes use `/guest/groups/...`. The user approved the change (decision 2). |
-| Return the merged order in the submit response | The user chose the consolidated guest dishes only (decision 3). |
-| Low-level `IAmazonDynamoDB.TransactWriteItemsAsync` | The DataModel API sends the expected request (decision 17). The low-level API stays as the fallback. |
+| Random GUID as the owner session id                                    | Two parallel first calls create two owner sessions. The fixed id `owner-{groupReservationId}` makes the create idempotent.                                                                                 |
+| Count owner sessions as guests                                         | An owner session takes a guest place, and the guest limit becomes wrong.                                                                                                                                   |
+| `POST /group-reservations/{groupReservationId}/submit` (task text)     | Other group routes use `/guest/groups/...`. The user approved the change (decision 2).                                                                                                                     |
+| Return the merged order in the submit response                         | The user chose the consolidated guest dishes only (decision 3).                                                                                                                                            |
+| Low-level `IAmazonDynamoDB.TransactWriteItemsAsync`                    | The DataModel API sends the expected request (decision 17). The low-level API stays as the fallback.                                                                                                       |
 
 ## Consequences
 
