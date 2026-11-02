@@ -214,6 +214,50 @@ public class GuestSessionService(
 
         return new GetAllSessionsResponse(participants, participants.Sum(p => p.Total));
     }
+
+    public async Task<GetAllSessionsResponse> GetGroupSessionsAsync(string userId, string groupReservationId)
+    {
+        await ValidateReservationOwnerAsync(groupReservationId, userId);
+
+        var sessions = await guestSessionRepository.GetAllByGroupReservationIdAsync(groupReservationId);
+        var guestSessions = sessions.Where(s => !s.IsOwnerSession).ToList();
+
+        var dishIds = guestSessions
+            .SelectMany(s => s.Dishes)
+            .Select(d => d.DishId)
+            .Distinct()
+            .ToArray();
+
+        var dishes = await dishRepository.GetDishesByIdsAsync(dishIds);
+        var dishesById = dishes.ToDictionary(d => d.Id);
+
+        var participants = guestSessions
+            .Select(s => ToGuestParticipant(s, dishesById))
+            .ToList();
+
+        return new GetAllSessionsResponse(participants, participants.Sum(p => p.Total));
+    }
+
+    private static Participant ToGuestParticipant(GuestSession session, IReadOnlyDictionary<string, Dish> dishesById)
+    {
+        var items = new List<OrderItemResponse>();
+
+        foreach (var item in session.Dishes)
+        {
+            if (dishesById.TryGetValue(item.DishId, out var dish))
+            {
+                items.Add(new OrderItemResponse
+                {
+                    Dish = DishMapper.ToDishResponse(dish),
+                    Quantity = item.Quantity
+                });
+            }
+        }
+
+        decimal total = items.Sum(i => i.Quantity * i.Dish.Price);
+        return new Participant(session.Id, ParticipantType.Guest, session.GuestName, items, total, session.IsSubmitted);
+    }
+
     public async Task SubmitCartAsync(string guestSessionId)
     {
         GuestSession guestSession = await GetGuestSessionAsync(guestSessionId);

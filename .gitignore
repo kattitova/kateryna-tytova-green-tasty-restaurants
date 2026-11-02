@@ -43,3 +43,6 @@ logs/
 .terraform.tfstate.lock.info
 crash.log
 crash.*.log
+
+# Claude Code agent pipeline work files
+.claude/work/

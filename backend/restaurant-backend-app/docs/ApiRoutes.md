@@ -1188,17 +1188,50 @@ Response: 200 OK
 ```
 
 ### `GET` /guest/groups/{groupReservationId}/sessions
+Auth: Cognito ID token. The caller must be the owner of the parent reservation.
+
 Response: 200 OK
 ```json
-[
-  {
-    "id": "string",
-    "groupReservationId": "string",
-    "guestName": "string",
-    "status": "string"
-  }
-]
+{
+  "participants": [
+    {
+      "id": "session1",
+      "type": "Guest",
+      "name": "Andrii",
+      "items": [
+        {
+          "dish": {
+            "id": "dish1",
+            "name": "Caesar Salad",
+            "price": 180
+          },
+          "quantity": 2
+        }
+      ],
+      "total": 360,
+      "isSubmitted": true
+    }
+  ],
+  "total": 360
+}
 ```
+The `dish` value is the full dish object. The example shows only `id`, `name` and `price`.
+
+Errors:
+
+| Status | When | Body |
+|---|---|---|
+| 400 | The `groupReservationId` path parameter is missing or empty. | `{"error": "Missing 'groupReservationId' in path parameters."}` |
+| 401 | The token has no `sub` claim, or the claim is empty. | `{"error": "Unauthorized."}` |
+| 403 | The caller is not the owner of the parent reservation. | `{"error": "Only the reservation owner can perform this action."}` |
+| 404 | The group reservation does not exist. | `{"error": "Group reservation was not found"}` |
+| 404 | The parent reservation does not exist. | `{"error": "Reservation not found."}` |
+
+Notes:
+- The response lists only guest sessions. The owner session is not in the list.
+- If a dish no longer exists, the response leaves out the order items for that dish. The totals do not include them.
+- This request works in every group reservation status.
+- If the token is missing or not valid, the API Gateway Cognito authorizer sends 401 before the Lambda runs. That body comes from API Gateway, not from the table above.
 
 ### `DELETE` /guest/groups/{groupReservationId}/sessions/{guestSessionId}
 Response: 200 OK
