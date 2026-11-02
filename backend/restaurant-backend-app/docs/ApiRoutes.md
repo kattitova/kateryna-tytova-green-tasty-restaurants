@@ -1305,9 +1305,60 @@ Notes:
 - If the token is missing or not valid, the API Gateway Cognito authorizer sends 401 before the Lambda runs. That body comes from API Gateway, not from the table above.
 
 ### `DELETE` /guest/groups/{groupReservationId}/sessions/{guestSessionId}
+Auth: Cognito ID token. The caller must be the owner of the parent reservation.
+
+The request deletes one guest session from the group reservation. The response lists the guest sessions that remain.
+
 Response: 200 OK
 ```json
 {
-  "message": "Guest session removed from group successfully."
+  "participants": [
+    {
+      "id": "session2",
+      "type": "Guest",
+      "name": "Olena",
+      "items": [
+        {
+          "dish": {
+            "id": "dish2",
+            "name": "Tom Yum",
+            "price": 220
+          },
+          "quantity": 1
+        }
+      ],
+      "total": 220,
+      "isSubmitted": false
+    }
+  ],
+  "total": 220
 }
 ```
+The `dish` value is the full dish object. The example shows only `id`, `name` and `price`.
+
+Errors:
+
+| Status | When | Body |
+|---|---|---|
+| 400 | The `groupReservationId` path parameter is missing or empty. | `{"error": "Missing 'groupReservationId' in path parameters."}` |
+| 400 | The `guestSessionId` path parameter is missing or empty. | `{"error": "Missing 'guestSessionId' in path parameters."}` |
+| 401 | The token has no `sub` claim, or the claim is empty or contains only white space. | `{"error": "Unauthorized."}` |
+| 404 | The group reservation does not exist. | `{"error": "Group reservation was not found"}` |
+| 404 | The parent reservation does not exist. | `{"error": "Reservation not found."}` |
+| 403 | The caller is not the owner of the parent reservation. | `{"error": "Only the reservation owner can perform this action."}` |
+| 400 | The group reservation status is `Submitted`. | `{"message": "Group reservation was submitted.", "errorCode": "GroupReservationSubmitted"}` |
+| 400 | The group reservation status is `Closed`. | `{"message": "Group reservation is expired.", "errorCode": "GroupReservationExpired"}` |
+| 404 | The guest session does not exist, or it belongs to a different group reservation. | `{"error": "Guest session with id {guestSessionId} not found."}` |
+| 400 | The session is the owner session of the group. | `{"message": "The owner session cannot be deleted.", "errorCode": "OwnerSessionNotDeletable"}` |
+| 500 | Another error occurs, for example a DynamoDB error. | `{"error": "Internal Server Error"}` |
+
+The checks run in the order of the table. In the messages, `{guestSessionId}` is the value from the request.
+
+Notes:
+- This request works only when the group reservation status is `Open`.
+- The owner cannot delete the owner session.
+- The owner can delete a guest session with `isSubmitted: true`. A later group submit does not include the dishes of that session.
+- The response lists only guest sessions. The owner session is not in the list.
+- If a dish no longer exists, the response leaves out the order items for that dish. The totals do not include them.
+- A second DELETE of the same `guestSessionId` returns 404. The client can treat this 404 as "already deleted".
+- If the token is missing or not valid, the API Gateway Cognito authorizer sends 401 before the Lambda runs. That body comes from API Gateway, not from the table above.

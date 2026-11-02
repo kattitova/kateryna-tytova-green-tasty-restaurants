@@ -1286,6 +1286,383 @@ public class GuestSessionServiceTests
             { dishMap.Keys, dishMap.Values, orderItems, expectedTotal }
         };
     }
+
+    #region DeleteGuestSessionAsync
+
+    private const string DeletedSessionId = "session1";
+
+    private void ArrangeSessionById(GuestSession session)
+    {
+        _mockGuestSessionRepository
+            .Setup(r => r.GetByGuestSessionId(session.Id))
+            .ReturnsAsync(session);
+    }
+
+    private void VerifyNoDelete()
+    {
+        _mockGuestSessionRepository.Verify(r => r.DeleteAsync(It.IsAny<GuestSession>()), Times.Never);
+    }
+
+    private void VerifyNoSessionLookup()
+    {
+        _mockGuestSessionRepository.Verify(r => r.GetByGuestSessionId(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_UnknownGroup_ThrowsGroupReservationNotFoundException()
+    {
+        _mockGroupReservationRepository
+            .Setup(r => r.GetGroupReservationByIdAsync(GroupId))
+            .ReturnsAsync((GroupReservation?)null);
+        ArrangeSessionById(Session(DeletedSessionId, "Andrii"));
+
+        await Assert.ThrowsAsync<GroupReservationNotFoundException>(
+            () => _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId));
+
+        VerifyNoSessionLookup();
+        VerifyNoDelete();
+    }
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_ParentReservationMissing_ThrowsReservationNotFoundException()
+    {
+        _mockGroupReservationRepository
+            .Setup(r => r.GetGroupReservationByIdAsync(GroupId))
+            .ReturnsAsync(new GroupReservation
+            {
+                GroupReservationId = GroupId,
+                ReservationId = ParentReservationId,
+                ReservationToken = "token-1",
+                Status = GroupReservationStatus.Open
+            });
+        _mockReservationRepository
+            .Setup(r => r.GetReservationByIdAsync(ParentReservationId))
+            .ReturnsAsync((Reservation?)null);
+        ArrangeSessionById(Session(DeletedSessionId, "Andrii"));
+
+        await Assert.ThrowsAsync<ReservationNotFoundException>(
+            () => _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId));
+
+        VerifyNoDelete();
+    }
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_CallerIsNotOwner_ThrowsActionForbiddenException()
+    {
+        ArrangeGroupOwnedBy("another-user");
+        ArrangeSessionById(Session(DeletedSessionId, "Andrii"));
+
+        await Assert.ThrowsAsync<ActionForbiddenException>(
+            () => _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId));
+
+        VerifyNoSessionLookup();
+        VerifyNoDelete();
+    }
+
+    [Theory]
+    [InlineData(GroupReservationStatus.Submitted)]
+    [InlineData(GroupReservationStatus.Closed)]
+    public async Task DeleteGuestSessionAsync_CallerIsNotOwnerAndGroupNotOpen_ThrowsActionForbiddenException(GroupReservationStatus status)
+    {
+        ArrangeGroupOwnedBy("another-user", status);
+        ArrangeSessionById(Session(DeletedSessionId, "Andrii"));
+
+        await Assert.ThrowsAsync<ActionForbiddenException>(
+            () => _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId));
+
+        VerifyNoSessionLookup();
+        VerifyNoDelete();
+    }
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_ReservationHasNoCustomer_ThrowsActionForbiddenException()
+    {
+        ArrangeGroupOwnedBy(null);
+        ArrangeSessionById(Session(DeletedSessionId, "Andrii"));
+
+        await Assert.ThrowsAsync<ActionForbiddenException>(
+            () => _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId));
+
+        VerifyNoDelete();
+    }
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_GroupSubmitted_ThrowsGroupReservationSubmittedException()
+    {
+        ArrangeGroupOwnedBy(GroupOwnerUserId, GroupReservationStatus.Submitted);
+        ArrangeSessionById(Session(DeletedSessionId, "Andrii"));
+        ArrangeSessions();
+        ArrangeDishes();
+
+        await Assert.ThrowsAsync<GroupReservationSubmittedException>(
+            () => _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId));
+
+        VerifyNoSessionLookup();
+        VerifyNoDelete();
+    }
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_GroupClosed_ThrowsGroupReservationExpiredException()
+    {
+        ArrangeGroupOwnedBy(GroupOwnerUserId, GroupReservationStatus.Closed);
+        ArrangeSessionById(Session(DeletedSessionId, "Andrii"));
+        ArrangeSessions();
+        ArrangeDishes();
+
+        await Assert.ThrowsAsync<GroupReservationExpiredException>(
+            () => _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId));
+
+        VerifyNoSessionLookup();
+        VerifyNoDelete();
+    }
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_SessionNotFound_ThrowsGuestSessionNotFoundException()
+    {
+        ArrangeGroupOwnedBy(GroupOwnerUserId);
+        _mockGuestSessionRepository
+            .Setup(r => r.GetByGuestSessionId(DeletedSessionId))
+            .ReturnsAsync((GuestSession?)null);
+
+        await Assert.ThrowsAsync<GuestSessionNotFoundException>(
+            () => _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId));
+
+        VerifyNoDelete();
+    }
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_SessionOfAnotherGroup_ThrowsSameGuestSessionNotFoundAsMissingSession()
+    {
+        ArrangeGroupOwnedBy(GroupOwnerUserId);
+        _mockGuestSessionRepository
+            .Setup(r => r.GetByGuestSessionId(DeletedSessionId))
+            .ReturnsAsync((GuestSession?)null);
+        var missing = await Assert.ThrowsAsync<GuestSessionNotFoundException>(
+            () => _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId));
+
+        var otherGroupSession = Session(DeletedSessionId, "Andrii", items: ("dish1", 1));
+        otherGroupSession.GroupReservationId = "group-2";
+        ArrangeSessionById(otherGroupSession);
+        ArrangeSessions();
+        ArrangeDishes();
+
+        var otherGroup = await Assert.ThrowsAsync<GuestSessionNotFoundException>(
+            () => _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId));
+
+        Assert.Equal(missing.Message, otherGroup.Message);
+        VerifyNoDelete();
+    }
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_OwnerSession_ThrowsOwnerSessionNotDeletableException()
+    {
+        ArrangeGroupOwnedBy(GroupOwnerUserId);
+        ArrangeSessionById(Session("owner-group-1", "Owner", isOwnerSession: true));
+        ArrangeSessions();
+        ArrangeDishes();
+
+        await Assert.ThrowsAsync<OwnerSessionNotDeletableException>(
+            () => _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, "owner-group-1"));
+
+        VerifyNoDelete();
+    }
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_OwnerSessionAndCallerIsNotOwner_ThrowsActionForbiddenException()
+    {
+        ArrangeGroupOwnedBy("another-user");
+        ArrangeSessionById(Session("owner-group-1", "Owner", isOwnerSession: true));
+
+        await Assert.ThrowsAsync<ActionForbiddenException>(
+            () => _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, "owner-group-1"));
+
+        VerifyNoDelete();
+    }
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_OwnerSessionOfAnotherGroup_ThrowsGuestSessionNotFoundException()
+    {
+        ArrangeGroupOwnedBy(GroupOwnerUserId);
+        var otherOwnerSession = Session("owner-group-2", "Owner", isOwnerSession: true);
+        otherOwnerSession.GroupReservationId = "group-2";
+        ArrangeSessionById(otherOwnerSession);
+        ArrangeSessions();
+        ArrangeDishes();
+
+        await Assert.ThrowsAsync<GuestSessionNotFoundException>(
+            () => _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, "owner-group-2"));
+
+        VerifyNoDelete();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DeleteGuestSessionAsync_OpenGroupGuestSession_DeletesRequestedSessionOnce(bool isSubmitted)
+    {
+        ArrangeGroupOwnedBy(GroupOwnerUserId);
+        var loadedSession = Session(DeletedSessionId, "Andrii", isSubmitted: isSubmitted, items: ("dish1", 2));
+        ArrangeSessionById(loadedSession);
+        ArrangeSessions();
+        ArrangeDishes();
+
+        await _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId);
+
+        _mockGuestSessionRepository.Verify(
+            r => r.DeleteAsync(It.Is<GuestSession>(s => ReferenceEquals(s, loadedSession))),
+            Times.Once);
+        _mockGuestSessionRepository.Verify(r => r.DeleteAsync(It.IsAny<GuestSession>()), Times.Once);
+    }
+
+    #endregion
+
+    #region DeleteGuestSessionAsync response
+
+    private void ArrangeDeletableGuest(GuestSession session)
+    {
+        ArrangeGroupOwnedBy(GroupOwnerUserId);
+        ArrangeSessionById(session);
+    }
+
+    private static GuestSession Andrii() => Session(DeletedSessionId, "Andrii", items: ("dish1", 2));
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_TaskExample_ReturnsRemainingGuestWithItemsAndTotals()
+    {
+        ArrangeDeletableGuest(Andrii());
+        ArrangeSessions(Session("session2", "Olena", isSubmitted: false, items: ("dish2", 1)));
+        ArrangeDishes(TomYum);
+
+        GetAllSessionsResponse result = await _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId);
+
+        var olena = Assert.Single(result.Participants);
+        Assert.Equal("session2", olena.Id);
+        Assert.Equal(ParticipantType.Guest, olena.Type);
+        Assert.Equal("Olena", olena.Name);
+        var item = Assert.Single(olena.Items);
+        Assert.Equal("dish2", item.Dish.Id);
+        Assert.Equal("Tom Yum", item.Dish.Name);
+        Assert.Equal(220m, item.Dish.Price);
+        Assert.Equal(1, item.Quantity);
+        Assert.Equal(220m, olena.Total);
+        Assert.False(olena.IsSubmitted);
+        Assert.Equal(220m, result.Total);
+    }
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_RequeryStillReturnsDeletedSession_ExcludesItFromParticipantsAndTotal()
+    {
+        ArrangeDeletableGuest(Andrii());
+        ArrangeSessions(
+            Andrii(),
+            Session("session2", "Olena", items: ("dish2", 1)));
+        ArrangeDishes(CaesarSalad, TomYum);
+
+        GetAllSessionsResponse result = await _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId);
+
+        var participant = Assert.Single(result.Participants);
+        Assert.Equal("session2", participant.Id);
+        Assert.Equal(220m, result.Total);
+        _mockDishRepository.Verify(r => r.GetDishesByIdsAsync(It.Is<IEnumerable<string>>(ids =>
+            ids.ToHashSet().SetEquals(new[] { "dish2" }))), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_RequeryReturnsOwnerSession_ExcludesOwnerFromParticipantsTotalAndDishLookup()
+    {
+        ArrangeDeletableGuest(Andrii());
+        ArrangeSessions(
+            Session("owner-group-1", "Owner", isOwnerSession: true, items: ("dish1", 3)),
+            Session("session2", "Olena", items: ("dish2", 1)));
+        ArrangeDishes(CaesarSalad, TomYum);
+
+        GetAllSessionsResponse result = await _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId);
+
+        var participant = Assert.Single(result.Participants);
+        Assert.Equal("session2", participant.Id);
+        Assert.Equal(ParticipantType.Guest, participant.Type);
+        Assert.Equal(220m, result.Total);
+        _mockDishRepository.Verify(r => r.GetDishesByIdsAsync(It.Is<IEnumerable<string>>(ids =>
+            ids.ToHashSet().SetEquals(new[] { "dish2" }))), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_ItemWithUnknownDish_SkipsItemAndExcludesItFromTotals()
+    {
+        ArrangeDeletableGuest(Andrii());
+        ArrangeSessions(Session("session2", "Olena", items: [("dish-removed", 4), ("dish2", 1)]));
+        ArrangeDishes(TomYum);
+
+        GetAllSessionsResponse result = await _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId);
+
+        var participant = Assert.Single(result.Participants);
+        var item = Assert.Single(participant.Items);
+        Assert.Equal("dish2", item.Dish.Id);
+        Assert.Equal(220m, participant.Total);
+        Assert.Equal(220m, result.Total);
+    }
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_SameDishInSeveralRemainingSessions_LoadsDistinctDishIdsInOneCall()
+    {
+        ArrangeDeletableGuest(Andrii());
+        ArrangeSessions(
+            Session("session2", "Olena", items: [("dish1", 1), ("dish2", 1)]),
+            Session("session3", "Taras", items: ("dish1", 2)));
+        ArrangeDishes(CaesarSalad, TomYum);
+
+        GetAllSessionsResponse result = await _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId);
+
+        _mockDishRepository.Verify(r => r.GetDishesByIdsAsync(It.IsAny<IEnumerable<string>>()), Times.Once);
+        _mockDishRepository.Verify(r => r.GetDishesByIdsAsync(It.Is<IEnumerable<string>>(ids =>
+            ids.Count() == ids.Distinct().Count()
+            && ids.ToHashSet().SetEquals(new[] { "dish1", "dish2" }))), Times.Once);
+        Assert.Equal(400m + 360m, result.Total);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DeleteGuestSessionAsync_LastGuestDeleted_ReturnsEmptyParticipantsAndZeroTotal(bool ownerSessionRemains)
+    {
+        ArrangeDeletableGuest(Andrii());
+        if (ownerSessionRemains)
+        {
+            ArrangeSessions(Session("owner-group-1", "Owner", isOwnerSession: true, items: ("dish2", 2)));
+        }
+        else
+        {
+            ArrangeSessions();
+        }
+        ArrangeDishes(CaesarSalad, TomYum);
+
+        GetAllSessionsResponse result = await _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId);
+
+        Assert.NotNull(result);
+        Assert.Empty(result.Participants);
+        Assert.Equal(0m, result.Total);
+    }
+
+    [Fact]
+    public async Task DeleteGuestSessionAsync_RemainingGuests_KeepsRepositoryOrderGuestTypeAndSubmittedFlag()
+    {
+        ArrangeDeletableGuest(Andrii());
+        ArrangeSessions(
+            Session("session3", "Taras", isSubmitted: true, items: ("dish1", 1)),
+            Session("session2", "Olena", isSubmitted: false, items: ("dish2", 1)));
+        ArrangeDishes(CaesarSalad, TomYum);
+
+        GetAllSessionsResponse result = await _guestSessionService.DeleteGuestSessionAsync(GroupOwnerUserId, GroupId, DeletedSessionId);
+
+        var participants = result.Participants.ToList();
+        Assert.Equal(["session3", "session2"], participants.Select(p => p.Id));
+        Assert.All(participants, p => Assert.Equal(ParticipantType.Guest, p.Type));
+        Assert.True(participants[0].IsSubmitted);
+        Assert.False(participants[1].IsSubmitted);
+        Assert.Equal(400m, result.Total);
+    }
+
+    #endregion
 }
 
 

@@ -175,45 +175,25 @@ public class GuestSessionService(
     
     public async Task<GetAllSessionsResponse> DeleteGuestSessionAsync(string userId, string groupReservationId, string guestSessionId)
     {
-        await ValidateReservationOwnerAsync(groupReservationId, userId);
+        var group = await ValidateReservationOwnerAsync(groupReservationId, userId);
+        ValidateGroupReservation(group);
 
-        var session = await guestSessionRepository.GetByGuestSessionId(guestSessionId)
-            ?? throw new GuestSessionNotFoundException($"Guest session with id {guestSessionId} not found.");
+        var session = await guestSessionRepository.GetByGuestSessionId(guestSessionId);
 
-        if (session.GroupReservationId != groupReservationId)
-        {
-            throw new ValidationException("Guest session does not belong to this group reservation.");
-        }
+        // A session of another group gets the same 404 as a missing one, so its existence is not revealed.
+        if (session is null || session.GroupReservationId != groupReservationId)
+            throw new GuestSessionNotFoundException($"Guest session with id {guestSessionId} not found.");
+
+        if (session.IsOwnerSession)
+            throw new OwnerSessionNotDeletableException();
 
         await guestSessionRepository.DeleteAsync(session);
 
+        // The GSI read is eventually consistent, so it can still return the deleted session.
         var sessions = await guestSessionRepository.GetAllByGroupReservationIdAsync(groupReservationId);
+        var remainingGuests = sessions.GuestsOnly().Where(s => s.Id != guestSessionId).ToList();
 
-        var dishIds = sessions
-            .SelectMany(s => s.Dishes)
-            .Select(s => s.DishId)
-            .Distinct()
-            .ToArray();
-
-        var allDishes = await dishRepository.GetDishesByIdsAsync(dishIds);
-        var dishesById = allDishes.ToDictionary(d => d.Id);
-
-        var participants = new List<Participant>();
-
-        foreach (var guestSession in sessions)
-        {
-            var items = guestSession.Dishes.Select(d => new OrderItemResponse
-            {
-                Dish = DishMapper.ToDishResponse(dishesById[d.DishId]),
-                Quantity = d.Quantity
-            }).ToArray();
-
-            decimal total = items.Sum(i => i.Quantity * i.Dish.Price);
-            var participant = new Participant(guestSession.Id, ParticipantType.Guest, guestSession.GuestName, items, total, guestSession.IsSubmitted);
-            participants.Add(participant);
-        }
-
-        return new GetAllSessionsResponse(participants, participants.Sum(p => p.Total));
+        return await BuildGuestSnapshotAsync(remainingGuests);
     }
 
     public async Task<GetAllSessionsResponse> GetGroupSessionsAsync(string userId, string groupReservationId)
@@ -221,8 +201,12 @@ public class GuestSessionService(
         await ValidateReservationOwnerAsync(groupReservationId, userId);
 
         var sessions = await guestSessionRepository.GetAllByGroupReservationIdAsync(groupReservationId);
-        var guestSessions = sessions.GuestsOnly().ToList();
 
+        return await BuildGuestSnapshotAsync(sessions.GuestsOnly().ToList());
+    }
+
+    private async Task<GetAllSessionsResponse> BuildGuestSnapshotAsync(IReadOnlyCollection<GuestSession> guestSessions)
+    {
         var dishIds = guestSessions
             .SelectMany(s => s.Dishes)
             .Select(d => d.DishId)
@@ -339,7 +323,7 @@ public class GuestSessionService(
     }
 
     
-    private async Task ValidateReservationOwnerAsync(string groupReservationId, string userId)
+    private async Task<GroupReservation> ValidateReservationOwnerAsync(string groupReservationId, string userId)
     {
         var group = await groupReservationRepository.GetGroupReservationByIdAsync(groupReservationId)
             ?? throw new GroupReservationNotFoundException();
@@ -351,6 +335,8 @@ public class GuestSessionService(
         {
             throw new ActionForbiddenException("Only the reservation owner can perform this action.");
         }
+
+        return group;
     }
 
     public async Task<OwnerSessionIdResponse> GetOrCreateOwnerSessionIdAsync(string userId, string reservationId)

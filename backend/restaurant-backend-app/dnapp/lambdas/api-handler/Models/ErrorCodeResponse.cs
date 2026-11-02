@@ -17,6 +17,9 @@ public enum ErrorCode
     [JsonStringEnumMemberName("GuestSessionExpired")]
     GuestSessionExpired,
 
+    [JsonStringEnumMemberName("OwnerSessionNotDeletable")]
+    OwnerSessionNotDeletable,
+
     [JsonStringEnumMemberName("Unknown")]
     Unknown,
 }

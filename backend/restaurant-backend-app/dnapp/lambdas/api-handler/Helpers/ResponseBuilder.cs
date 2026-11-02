@@ -46,6 +46,7 @@ public static class ResponseBuilder
             GuestLimitExceededException => ErrorCode.GuestLimitExceeded,
             GroupReservationSubmittedException => ErrorCode.GroupReservationSubmitted,
             GuestSessionExpiredException => ErrorCode.GuestSessionExpired,
+            OwnerSessionNotDeletableException => ErrorCode.OwnerSessionNotDeletable,
             _ => ErrorCode.Unknown
         }));
 

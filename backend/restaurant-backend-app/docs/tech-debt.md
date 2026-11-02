@@ -2,7 +2,7 @@
 
 Status: open. Recorded on 2026-11-02 during the work on `GET /guest/groups/{groupReservationId}/sessions`. Every item existed before that work.
 
-Paths below are relative to `backend/restaurant-backend-app/dnapp/lambdas/api-handler/` unless they start with `docs/` or `swagger_src/`. Line numbers are from commit `bb46d3f`.
+Paths below are relative to `backend/restaurant-backend-app/dnapp/lambdas/api-handler/` unless they start with `docs/` or `swagger_src/`. Line numbers are from commit `bb46d3f`, except in items 1.6 to 1.8. The DELETE task of 2026-11-02 added items 1.6 to 1.8, and their line numbers are from that change.
 
 Priority:
 
@@ -11,40 +11,27 @@ Priority:
 
 ## 1. `DELETE /guest/groups/{groupReservationId}/sessions/{guestSessionId}`
 
-Fix these items together in one task. The response shape decision (1.2) changes the docs (1.4). The frontend does not call this endpoint yet, so now is the cheapest time to change its response.
+The DELETE task of 2026-11-02 fixed items 1.1 (the DELETE part), 1.2, 1.3, 1.4 and 1.5. DELETE now accepts guest sessions only, in an `Open` group, and returns a camelCase `{ participants, total }` body of the remaining guests. A DELETE of the owner session returns 400 `OwnerSessionNotDeletable`. `docs/ApiRoutes.md` and Swagger document the route. Items 1.6 to 1.8 are still open.
 
-### 1.1 A deleted dish causes a 500 (P1)
+### 1.6 `GetGuestSessionInfoAsync` throws on a deleted dish (P1)
 
-- **Where:** `Services/GuestSessions/GuestSessionService.cs:206` (`DeleteGuestSessionAsync`) and `:385` (`GetGuestSessionInfoAsync`).
-- **Problem:** both methods read `dishesById[d.DishId]`. If a dish in a session no longer exists, the indexer throws `KeyNotFoundException`, and the client gets 500.
-- **Fix:** use the private helper `ToGuestParticipant`, which `GetGroupSessionsAsync` already uses. It skips unknown dishes with `TryGetValue`. This also deletes the duplicated item and total code in the three methods.
-- **Before the fix:** write tests for `DeleteGuestSessionAsync` that pin its current behaviour. It has no tests today.
-- **Decision needed:** `DeleteGuestSessionAsync` does not filter out owner sessions (`IsOwnerSession`). `GetGroupSessionsAsync` calls `ToGuestParticipant` after that filter. Decide whether DELETE must also return guests only.
-- **Update (ADR 0002):** owner sessions exist in data now. `GET /reservations/{reservationId}/guest-session-id` creates one with the id `owner-{groupReservationId}`. As a result, DELETE can list the owner session as a guest named "Owner". The owner can also delete the owner session through DELETE. No data is lost, because the next GET creates it again. When you fix DELETE, filter with `Helpers/GuestSessionExtensions.GuestsOnly()`, as the other four callers do. Also decide whether DELETE must refuse the owner session id.
+- **Where:** `Services/GuestSessions/GuestSessionService.cs:396` (`GetGuestSessionInfoAsync`).
+- **Problem:** the method reads `dishesById[d.DishId]`. If a dish in the session no longer exists, the indexer throws `KeyNotFoundException`, and the client gets 500. The DELETE task did not change this method.
+- **Fix:** use `TryGetValue` and skip unknown dishes, as `ToGuestParticipant` does. Add a test with a dish id that the dish repository does not return.
 
-### 1.2 The response is PascalCase (P2)
+### 1.7 DELETE is not atomic with the group status or with guest writes (P2)
 
-- **Where:** `Handlers/GuestSessions/DeleteGuestSessionHandler.cs:41`.
-- **Problem:** the handler uses `ResponseBuilder.CreateSuccessResponse(object)`, which serializes `GetAllSessionsResponse` with `Participants`, `Total`, `Id` and so on. `GET .../sessions` returns the same type in camelCase through `CreateJsonResponse`.
-- **Fix:** use `ResponseBuilder.CreateJsonResponse(200, updatedSnapshot)`.
+- **Where:** `Services/GuestSessions/GuestSessionService.cs` (`DeleteGuestSessionAsync`), `Repositories/GuestSessions/GuestSessionRepository.cs` (`DeleteAsync`, `SaveAsync`).
+- **Problem:** two races.
+  - The service reads the group status, then deletes with no condition. A group submit between the two can make an order that has the dishes of a deleted session.
+  - A guest who adds or deletes a dish at the same time can write the whole session item again after the delete. `SaveAsync` writes the full item, and `GuestSession` has no version field. The deleted session then comes back.
+- **Fix:** use conditional writes. Delete in a DynamoDB transaction with a condition check on the `GroupReservations` item (`status = Open`). Add `[DynamoDBVersion]` to `GuestSession`, or an `attribute_exists` condition on the guest save.
 
-### 1.3 The handler accepts an empty `sub` claim (P2)
+### 1.8 Test cleanup in `ResponseBuilderTests` (P2)
 
-- **Where:** `Handlers/GuestSessions/DeleteGuestSessionHandler.cs:32-36`.
-- **Problem:** the handler returns 401 only when the `sub` claim is missing. An empty or whitespace `sub` reaches the service. `GetGroupSessionsHandler` rejects it.
-- **Fix:** use the same null-safe check as `GetGroupSessionsHandler`.
-
-### 1.4 `docs/ApiRoutes.md` is wrong for this route (P2)
-
-- **Where:** `docs/ApiRoutes.md:1236`.
-- **Problem:** the entry documents `{"message": "Guest session removed from group successfully."}`. The handler returns the updated participant list (`GetAllSessionsResponse`).
-- **Fix:** after 1.2, document the real response and the error codes, in the same format as the `GET .../sessions` entry above it.
-
-### 1.5 Swagger does not document 403 (P2)
-
-- **Where:** `swagger_src/swagger-ui/swagger-endpoints.yaml`, operation `deleteGuestSession`.
-- **Problem:** the handler returns 403 when the caller is not the owner. Swagger lists only 400, 401 and 404.
-- **Fix:** add `'403'` with `ErrorResponse`.
+- **Where:** `Tests/Helpers/ResponseBuilderTests.cs` (path relative to `backend/restaurant-backend-app/`).
+- **Problem:** in the `OwnerSessionNotDeletable` `[Fact]`, the five asserts on the parsed JSON cannot fail after the exact-body assert passes. `ParseBody` does not dispose the `JsonDocument`.
+- **Fix:** delete the redundant asserts, or keep only the parsed asserts. Dispose the `JsonDocument` with `using`.
 
 ## 2. Error status codes across the guest endpoints
 
@@ -93,7 +80,6 @@ Fix these items together in one task. The response shape decision (1.2) changes 
 - **Missing:**
   - `submitGuestCart`: 401 (from `GuestAuthorizationService`).
   - `getGuestSessionMenu`: 403 (`ActionForbiddenException`).
-  - `deleteGuestSession`: 403 (see 1.5).
   - 500 (from `ExceptionHandler`) on `getGroupReservationByToken`, `getAllSessionsForGroup`, `submitGuestCart`, `getGuestSessionMenu`, `getInviteToken` and `deleteGuestSession`.
 - **Fix:** add each code with the schema that the code sends. Do this after the fixes in section 2, because they change some codes.
 
@@ -119,6 +105,7 @@ Recorded on 2026-11-02. Item 4.3 existed before that task.
 - **Where:** `frontend/restaurant-frontend-app`.
 - **Problem:** no frontend model or call exists for `GET /reservations/{reservationId}/guest-session-id` (response `{"guestSessionId"}`) and `POST /guest/groups/{groupReservationId}/submit` (request `{"reservationId"}`, response `[{"dishId", "quantity"}]`). The user approved a separate frontend task.
 - **Fix:** add the models and the service calls in one frontend task. Use `docs/ApiRoutes.md` as the contract.
+- **Also (2026-11-02):** no frontend model or call exists for `DELETE /guest/groups/{groupReservationId}/sessions/{guestSessionId}`. Add a participant model and a `{ participants, total }` response model, a `deleteGroupGuestSession(groupReservationId, guestSessionId)` call, and handling for the `OwnerSessionNotDeletable` error code. The user approved a separate frontend task.
 
 ### 4.2 The owner session cannot use the guest endpoints (P2)
 
@@ -140,9 +127,10 @@ Recorded on 2026-11-02. Item 4.3 existed before that task.
 
 ## Suggested order
 
-1. Section 1 (DELETE), as one `/orchestrate` task.
-2. Items 2.2, 2.3 and 2.4: small fixes with a test each.
-3. Item 2.1: changes the API contract. Agree on it with the frontend first.
-4. Items 2.5 and section 3: docs, after the code changes above.
+1. Items 1.6, 2.2, 2.3 and 2.4: small fixes with a test each.
+2. Item 2.1: changes the API contract. Agree on it with the frontend first.
+3. Items 2.5 and section 3: docs, after the code changes above.
+4. Item 1.7: conditional writes, as one `/orchestrate` task.
 5. Item 4.3: infra, with `infra-reviewer`.
 6. Items 4.1 and 4.2: one frontend task, with a backend change if 4.2 needs one.
+7. Item 1.8: when you next change `ResponseBuilderTests`.
