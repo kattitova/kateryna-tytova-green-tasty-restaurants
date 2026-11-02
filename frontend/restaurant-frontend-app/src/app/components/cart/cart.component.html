@@ -32,7 +32,14 @@
       </button>
     </div>
 
-    @if (unsubmittedOrders().length > 0) {
+    @if (isLoadingOrders()) {
+      <app-loading-spinner
+        class="cart-loading"
+        [message]="'Loading your orders...'"
+      />
+    }
+
+    @if (!isLoadingOrders() && unsubmittedOrders().length > 0) {
       <div class="orders-list">
         <div class="list-header">
           <h3>Not submitted pre-orders</h3>
@@ -65,7 +72,7 @@
       </div>
     }
 
-    @if (submittedOrders().length > 0) {
+    @if (!isLoadingOrders() && submittedOrders().length > 0) {
       <div class="orders-list">
         <div class="list-header">
           <h3>Submitted pre-orders</h3>
@@ -91,7 +98,7 @@
       </div>
     }
 
-    @if (orders().length === 0) {
+    @if (!isLoadingOrders() && orders().length === 0) {
       <div class="empty-cart">
         <img
           src="assets/img/empty-cart.png"

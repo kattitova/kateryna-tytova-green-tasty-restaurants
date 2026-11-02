@@ -1,8 +1,10 @@
 import {Component, OnInit, ChangeDetectionStrategy, inject} from '@angular/core';
+import { finalize } from 'rxjs';
 import { DishCardComponent } from '@app/shared/custom-components/dish-card/dish-card.component';
 import { DishesService } from '@app/services/dishes/dishes.service';
 import { DishListResponse } from '@app/models/dishes/dish-list-response.model';
 import { MainCoverImageComponent } from '@app/shared/custom-components/main-cover-image/main-cover-image.component';
+import { LoadingSpinnerComponent } from '@app/shared/custom-components/loading-spinner/loading-spinner.component';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { DishSort } from '@app/models/enums/dish-sort.model';
 import { DishType } from '@app/models/enums/dish-type.model';
@@ -18,7 +20,8 @@ import {ToastService} from '@app/services/toast/toast.service';
     RouterModule,
     DishCardComponent,
     MainCoverImageComponent,
-    DishModalComponent
+    DishModalComponent,
+    LoadingSpinnerComponent,
   ],
   templateUrl: './menu-page.component.html',
   styleUrl: './menu-page.component.scss',
@@ -29,6 +32,7 @@ export class MenuPageComponent implements OnInit {
   private toast = inject(ToastService);
   dishes: DishListResponse[] = [];
   filteredDishes: DishListResponse[] = [];
+  isLoadingDishes = false;
 
   isPreOrderEnabled = false;
   preOrderReservationId?: string;
@@ -77,26 +81,36 @@ export class MenuPageComponent implements OnInit {
   loadDishes(): void {
     const category = this.selectedCategory ?? undefined;
     const sort = this.selectedSort;
+    this.isLoadingDishes = true;
 
-    this.dishesService.getDishes(category, sort).subscribe((data) => {
-      this.dishes = data.map((dish) => ({
-        ...dish,
-        imageUrl: dish.imageUrl || 'assets/img/dish.png',
-        name: dish.name || 'Unknown Dish',
-        price: dish.price || 0,
-        weight: dish.weight || 'N/A',
-        description: dish.description || 'N/A',
-        state: dish.state || 'N/A',
-        dishType: dish.dishType || 'N/A',
-        calories: dish.calories || '0',
-        proteins: dish.proteins || '0',
-        fats: dish.fats || '0',
-        carbohydrates: dish.carbohydrates || '0',
-        vitamins: dish.vitamins || '0',
-      }));
+    this.dishesService
+      .getDishes(category, sort)
+      .pipe(finalize(() => { this.isLoadingDishes = false; }))
+      .subscribe({
+        next: (data) => {
+          this.dishes = data.map((dish) => ({
+            ...dish,
+            imageUrl: dish.imageUrl || 'assets/img/dish.png',
+            name: dish.name || 'Unknown Dish',
+            price: dish.price || 0,
+            weight: dish.weight || 'N/A',
+            description: dish.description || 'N/A',
+            state: dish.state || 'N/A',
+            dishType: dish.dishType || 'N/A',
+            calories: dish.calories || '0',
+            proteins: dish.proteins || '0',
+            fats: dish.fats || '0',
+            carbohydrates: dish.carbohydrates || '0',
+            vitamins: dish.vitamins || '0',
+          }));
 
-      this.filteredDishes = this.dishes;
-    });
+          this.filteredDishes = this.dishes;
+        },
+        error: () => {
+          this.dishes = [];
+          this.filteredDishes = [];
+        },
+      });
   }
 
   onCategorySelected(category: DishType): void {

@@ -10,9 +10,11 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
+import { finalize } from 'rxjs';
 
 import { Order } from '@app/models/orders/order.model';
 import { PreOrdersService } from '@app/services/pre-orders/pre-orders.service';
+import { LoadingSpinnerComponent } from '@app/shared/custom-components/loading-spinner/loading-spinner.component';
 
 import { CancelOrderModalComponent } from './components/cancel-order-modal/cancel-order-modal.component';
 import { NotSubmittedOrderComponent } from './components/not-submitted-order/not-submitted-order.component';
@@ -27,6 +29,7 @@ import { SubmittedOrderComponent } from './components/submitted-order/submitted-
     NotSubmittedOrderComponent,
     CancelOrderModalComponent,
     SubmitOrderModalComponent,
+    LoadingSpinnerComponent,
   ],
   templateUrl: './cart.component.html',
   styleUrl: './cart.component.scss',
@@ -42,6 +45,7 @@ export class CartComponent implements OnInit {
   readonly closeCartEvent = output<void>();
 
   readonly orders = signal<Order[]>([]);
+  readonly isLoadingOrders = signal(false);
 
   readonly cancelOrderId = signal<string | null>(null);
   readonly submitOrderId = signal<string | null>(null);
@@ -277,9 +281,14 @@ export class CartComponent implements OnInit {
   }
 
   private loadOrders(): void {
+    this.isLoadingOrders.set(true);
+
     this.preOrdersService
       .getPreOrders()
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isLoadingOrders.set(false)),
+      )
       .subscribe({
         next: (orders) => {
           this.orders.set(orders);
