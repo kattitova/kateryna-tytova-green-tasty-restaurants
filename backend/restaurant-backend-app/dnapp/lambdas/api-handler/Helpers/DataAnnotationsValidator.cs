@@ -12,7 +12,6 @@ public class DataAnnotationsValidator
     public static bool TryValidate(object value, [NotNullWhen(false)] out APIGatewayProxyResponse? errorResponse)
     {
         var list = new List<ValidationResult>();
-        Console.WriteLine(value);
         bool valid = Validator.TryValidateObject(value, new ValidationContext(value), list, validateAllProperties: true);
         errorResponse = valid ? null : ResponseBuilder.CreateJsonResponse(400, new
         {

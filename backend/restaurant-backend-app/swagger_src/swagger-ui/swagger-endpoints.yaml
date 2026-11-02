@@ -51,7 +51,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/BadRequestResponse'
         '401':
           description: Unauthorized
           content:
@@ -104,7 +104,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/BadRequestResponse'
         '401':
           description: Unauthorized
           content:
@@ -149,7 +149,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/CreateGuestSessionBadRequestResponse'
         '500':
           description: Internal server error
           content:
@@ -266,7 +266,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/BadRequestResponse'
         '404':
           description: Reservation not found
           content:
@@ -350,7 +350,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ErrorCodeResponse'
         '404':
           description: GroupId is required
           content:
@@ -394,7 +394,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/BadRequestResponse'
         '401':
           description: Missing or invalid guest session token in Authorization header
           content:
@@ -434,7 +434,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ErrorCodeResponse'
         '404':
           description: Reservation not found
           content:
@@ -477,7 +477,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/BadRequestResponse'
         '401':
           description: Unauthorized
           content:
@@ -815,12 +815,66 @@ components:
 
     ErrorResponse:
       type: object
+      description: Error body built by ResponseBuilder.CreateErrorResponse.
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: Missing guestSessionId in path parameters.
+
+    ErrorCodeResponse:
+      type: object
+      description: Error body built by ResponseBuilder.CreateErrorCodeResponse for a ValidationException. Always sent with HTTP 400.
+      required:
+        - message
+        - errorCode
       properties:
         message:
           type: string
           description: Error message
-          example: Missing guestSessionId in path parameters.
-        statusCode:
-          type: integer
-          description: HTTP status code
-          example: 400
+          example: Group reservation is expired.
+        errorCode:
+          type: string
+          description: Machine-readable error code
+          enum:
+            - GroupReservationExpired
+            - GroupReservationSubmitted
+            - GuestLimitExceeded
+            - GuestSessionExpired
+            - Unknown
+          example: GroupReservationExpired
+
+    ValidationErrorResponse:
+      type: object
+      description: Error body built by DataAnnotationsValidator when a request body fails its [Required] or other data annotations. Always sent with HTTP 400. Keys in "errors" are C# property names.
+      required:
+        - title
+        - errors
+      properties:
+        title:
+          type: string
+          example: One or more validation errors occurred.
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            GuestName:
+              - The GuestName field is required.
+
+    BadRequestResponse:
+      description: A 400 body. Path and body checks in the handler send ErrorResponse. A ValidationException from the service sends ErrorCodeResponse.
+      oneOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - $ref: '#/components/schemas/ErrorCodeResponse'
+
+    CreateGuestSessionBadRequestResponse:
+      description: A 400 body for POST /guest/sessions. An empty or invalid JSON body sends ErrorResponse. A body that fails data annotations sends ValidationErrorResponse. A ValidationException from the service sends ErrorCodeResponse.
+      oneOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - $ref: '#/components/schemas/ValidationErrorResponse'
+        - $ref: '#/components/schemas/ErrorCodeResponse'
