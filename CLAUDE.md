@@ -96,6 +96,22 @@ Report exact numbers from these commands. Do not report impressions.
 - **A test fails that the change does not touch.** Run the suite once more. If the test passes now, it is flaky: name it in the report and add it to `docs/tech-debt.md`. If it fails again, treat it as a real failure.
 - **Test totals.** Report the totals from the run. Do not compare with a fixed number in a doc.
 
+## Other AI agents (Copilot, Codex)
+
+Symlinks expose the same rules and skills to other agents. `CLAUDE.md` files and `.claude/skills/` are the source. Edit only them.
+
+| Link | Target | Read by |
+|---|---|---|
+| `AGENTS.md` | `CLAUDE.md` | Codex, Copilot |
+| `.github/copilot-instructions.md` | `CLAUDE.md` | Copilot |
+| `backend/restaurant-backend-app/AGENTS.md`, `frontend/restaurant-frontend-app/AGENTS.md`, `infra/terraform/AGENTS.md` | the `CLAUDE.md` in the same folder | Codex, Copilot |
+| `.agents/skills/` | `.claude/skills/` | Codex (Copilot in VS Code reads `.claude/skills/` directly) |
+
+Limits for agents other than Claude Code:
+
+- The subagents in `.claude/agents/`, the `orchestrate` pipeline and the hooks (`guard-writes`, action log) work only in Claude Code. Other agents get the rules and skills, but no tool enforces maker ≠ checker for them.
+- On Windows, git creates these links only with Developer Mode on and `core.symlinks=true` (`git clone -c core.symlinks=true <url>`). Without it, git checks out each link as a text file that contains the target path.
+
 ## Agent action log
 
 Hooks in `.claude/settings.json` log every tool call to `.agent-log/actions.jsonl` (gitignored), with the subagent type in the `agent` field.
