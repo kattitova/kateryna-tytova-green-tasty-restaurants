@@ -49,7 +49,7 @@ Pipeline (details in `.claude/skills/orchestrate/SKILL.md`):
 explorer → planner ⇄ plan-reviewer (≤3 rounds) → user approves plan
   → for each step: [implementer: scaffold] → test-writer (red) → implementer (green)
                    ⇄ code-reviewer / infra-reviewer (≤3 rounds) [→ recheck of minor fixes]
-  → verification → audit log → docs/tech-debt.md → summary → user commits
+  → verification → audit log → docs/tech-debt.md → summary → user commits → archive
 
 --lite: no explorer, 1 plan-review round; maker ≠ checker stays.
 ```

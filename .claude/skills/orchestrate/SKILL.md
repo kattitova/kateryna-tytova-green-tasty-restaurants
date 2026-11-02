@@ -129,6 +129,15 @@ A step is done when its last change has a checker verdict of `approve` or `appro
 5. Report the summary to the user in the user's language.
 6. Do not commit. Offer a commit message.
 
+### 5. Archive
+
+Do this after the user says that the task is committed or done.
+
+1. Move the task folder to `.claude/work/_archive/`, for example `mv .claude/work/2026-11-02-group-sessions-api .claude/work/_archive/`. Keep every file. The review rounds are the record of the maker/checker process.
+2. Tell the user the new path. `summary.md` is the entry point to the archived task.
+
+At the start of a new task, look for other folders in `.claude/work/` (not `_archive/`) that have a `summary.md`. Ask the user if each one is done, and archive the ones that are.
+
 ## Minor findings
 
 A checker verdict of `approve with minor` ends the loop. Then decide for each minor finding:
