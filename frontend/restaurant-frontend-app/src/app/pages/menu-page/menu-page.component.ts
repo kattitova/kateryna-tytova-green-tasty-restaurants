@@ -15,12 +15,7 @@ import { ToastService } from '@app/services/toast/toast.service';
 @Component({
   selector: 'app-menu-page',
   standalone: true,
-  imports: [
-    RouterModule,
-    DishCardComponent,
-    MainCoverImageComponent,
-    DishModalComponent,
-  ],
+  imports: [RouterModule, DishCardComponent, MainCoverImageComponent, DishModalComponent],
   templateUrl: './menu-page.component.html',
   styleUrl: './menu-page.component.scss',
   changeDetection: ChangeDetectionStrategy.Eager,

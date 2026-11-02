@@ -28,7 +28,13 @@ import { LoginModalComponent } from '@app/auth/components/login/login-modal/logi
   templateUrl: './main-page.component.html',
   styleUrls: ['./main-page.component.scss'],
   standalone: true,
-  imports: [CommonModule, RouterLink, LocationCardComponent, FeedbackWindowComponent, LoginModalComponent, ],
+  imports: [
+    CommonModule,
+    RouterLink,
+    LocationCardComponent,
+    FeedbackWindowComponent,
+    LoginModalComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.Eager,
   providers: [LocationsService, DishesService, ReservationService, UsersService, FeedbacksService],
 })
@@ -55,9 +61,9 @@ export class MainPageComponent implements OnInit {
   anonymousFeedbackToken = '';
 
   private readonly locationsService = inject(LocationsService);
-  private readonly dishesService = inject (DishesService);
+  private readonly dishesService = inject(DishesService);
   private readonly route = inject(ActivatedRoute);
-  private readonly reservationsService = inject(ReservationService)
+  private readonly reservationsService = inject(ReservationService);
   private readonly userService = inject(UsersService);
   private readonly feedbackService = inject(FeedbacksService);
 
@@ -96,8 +102,13 @@ export class MainPageComponent implements OnInit {
 
   loadPopularDishes(): void {
     this.isPopularDishesLoading = true;
-    this.dishesService.getPopularDishes()
-      .pipe(finalize(() => { this.isPopularDishesLoading = false; }))
+    this.dishesService
+      .getPopularDishes()
+      .pipe(
+        finalize(() => {
+          this.isPopularDishesLoading = false;
+        })
+      )
       .subscribe({
         next: (data) => {
           this.dishes = data.slice(0, 4).map((dish) => ({
@@ -116,8 +127,13 @@ export class MainPageComponent implements OnInit {
 
   loadLocations(): void {
     this.isLocationsLoading = true;
-    this.locationsService.getLocations()
-      .pipe(finalize(() => { this.isLocationsLoading = false; }))
+    this.locationsService
+      .getLocations()
+      .pipe(
+        finalize(() => {
+          this.isLocationsLoading = false;
+        })
+      )
       .subscribe({
         next: (data) => {
           this.locations = data.slice(0, 3).map((location) => ({
