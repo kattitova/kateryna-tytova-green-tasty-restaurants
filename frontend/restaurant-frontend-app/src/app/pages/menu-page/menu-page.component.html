@@ -54,7 +54,20 @@
       </div>
 
       @if (isLoadingDishes) {
-        <app-loading-spinner class="menu-loading" [message]="'Loading dishes...'" />
+        <div class="dish-cards skeleton-grid" aria-hidden="true">
+          @for (item of dishSkeletonItems; track item) {
+            <article class="dish-card dish-card-skeleton">
+              <div class="dish-image skeleton-block"></div>
+              <div class="dish-info">
+                <div class="dish-name skeleton-line"></div>
+                <div class="dish-meta">
+                  <span class="dish-price skeleton-line"></span>
+                  <span class="dish-weight skeleton-line"></span>
+                </div>
+              </div>
+            </article>
+          }
+        </div>
       } @else {
         <div class="dish-cards">
           @for (dish of filteredDishes; track dish) {

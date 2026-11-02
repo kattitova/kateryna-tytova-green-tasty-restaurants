@@ -92,11 +92,6 @@
   flex-direction: column;
   gap: 2.5rem;
 
-  .menu-loading {
-    width: 100%;
-    padding: 48px 0;
-  }
-
   .section-heading {
     font-weight: 500;
     font-size: 1.5rem;
@@ -164,6 +159,87 @@
   }
 }
 
+.skeleton-grid {
+  pointer-events: none;
+}
+
+.dish-card-skeleton {
+  @include card.common-card;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem;
+  flex: 1 1 240px;
+  width: 100%;
+  max-width: 288px;
+  gap: 1rem;
+  min-width: 220px;
+  box-sizing: border-box;
+}
+
+.skeleton-block,
+.skeleton-line {
+  position: relative;
+  overflow: hidden;
+  background-color: color.$neutral-200;
+}
+
+.skeleton-block::after,
+.skeleton-line::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 150%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.45) 50%, transparent 100%);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.dish-card-skeleton {
+  .dish-image.skeleton-block {
+    width: 100%;
+    max-width: 12.25rem;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+  }
+
+  .dish-info {
+    display: flex;
+    flex-direction: row;
+    align-items: start;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .dish-name.skeleton-line {
+    width: 62%;
+    height: 16px;
+    border-radius: 4px;
+  }
+
+  .dish-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+    gap: 0.25rem;
+  }
+
+  .dish-price.skeleton-line,
+  .dish-weight.skeleton-line {
+    width: 72px;
+    height: 14px;
+    border-radius: 4px;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    left: 100%;
+  }
+}
+
 // ✅ MEDIA QUERIES
 @media screen and (max-width: 768px) {
   .hero-section {
@@ -204,5 +280,11 @@
       gap: 1rem;
       margin: 0 auto;
     }
+  }
+
+  .dish-card-skeleton {
+    width: 100%;
+    max-width: 288px;
+    min-width: 0;
   }
 }

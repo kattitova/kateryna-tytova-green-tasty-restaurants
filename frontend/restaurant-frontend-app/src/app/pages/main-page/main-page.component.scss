@@ -187,6 +187,8 @@
       aspect-ratio: 1 / 1;
       border-radius: 50%;
       object-fit: cover;
+      background-color: color.$neutral-0;
+      box-shadow: 0 0 10px 4px rgba(194, 194, 194, 0.5);
     }
     .dish-info {
       display: flex;
@@ -259,6 +261,96 @@
     flex-wrap: nowrap;
     gap: 2%;
     margin: 0;
+  }
+}
+
+.skeleton-grid {
+  pointer-events: none;
+}
+
+.skeleton-card {
+  cursor: default;
+}
+
+.skeleton-block,
+.skeleton-line {
+  position: relative;
+  overflow: hidden;
+  background-color: color.$neutral-200;
+}
+
+.skeleton-block::after,
+.skeleton-line::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 150%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.45) 50%, transparent 100%);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.popular-dishes-section {
+  .skeleton-card {
+    .dish-name.skeleton-line {
+      width: 62%;
+      height: 16px;
+      border-radius: 4px;
+    }
+
+    .dish-price.skeleton-line,
+    .dish-weight.skeleton-line {
+      width: 72px;
+      height: 14px;
+      border-radius: 4px;
+    }
+  }
+}
+
+.location-skeleton-card {
+  @include card.common-card;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.location-skeleton-image {
+  width: 100%;
+  height: 180px;
+  border-radius: 12px;
+}
+
+.location-skeleton-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.location-skeleton-title {
+  width: 52%;
+  height: 18px;
+  border-radius: 4px;
+}
+
+.location-skeleton-subtitle {
+  width: 68%;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.location-skeleton-meta {
+  width: 40%;
+  height: 14px;
+  border-radius: 4px;
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    left: 100%;
   }
 }
 

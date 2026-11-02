@@ -19,6 +19,7 @@ import { FeedbacksService } from '@app/services/feedbacks/feedbacks.service';
 
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs/operators';
+import { finalize } from 'rxjs';
 
 import { LoginModalComponent } from '@app/auth/components/login/login-modal/login-modal.component';
 
@@ -34,6 +35,18 @@ import { LoginModalComponent } from '@app/auth/components/login/login-modal/logi
 export class MainPageComponent implements OnInit {
   dishes: DishListResponse[] = [];
   locations: LocationResponse[] = [];
+  isPopularDishesLoading = true;
+  isLocationsLoading = true;
+  readonly popularDishSkeletonCount = 4;
+  readonly locationSkeletonCount = 3;
+
+  get popularDishSkeletonItems(): number[] {
+    return Array.from({ length: this.popularDishSkeletonCount }, (_, index) => index + 1);
+  }
+
+  get locationSkeletonItems(): number[] {
+    return Array.from({ length: this.locationSkeletonCount }, (_, index) => index + 1);
+  }
 
   showFeedbackModal = false;
   selectedReservationCustomer!: ReservationCustomer;
@@ -82,27 +95,43 @@ export class MainPageComponent implements OnInit {
   }
 
   loadPopularDishes(): void {
-    this.dishesService.getPopularDishes().subscribe((data) => {
-      this.dishes = data.slice(0, 4).map((dish) => ({
-        ...dish,
-        imageUrl: dish.imageUrl || 'assets/img/dish.png',
-        name: dish.name || 'Unknown Dish',
-        price: dish.price || 0,
-        weight: dish.weight || 'N/A',
-      }));
-    });
+    this.isPopularDishesLoading = true;
+    this.dishesService.getPopularDishes()
+      .pipe(finalize(() => { this.isPopularDishesLoading = false; }))
+      .subscribe({
+        next: (data) => {
+          this.dishes = data.slice(0, 4).map((dish) => ({
+            ...dish,
+            imageUrl: dish.imageUrl || 'assets/img/dish.png',
+            name: dish.name || 'Unknown Dish',
+            price: dish.price || 0,
+            weight: dish.weight || 'N/A',
+          }));
+        },
+        error: () => {
+          this.dishes = [];
+        },
+      });
   }
 
   loadLocations(): void {
-    this.locationsService.getLocations().subscribe((data) => {
-      this.locations = data.slice(0, 3).map((location) => ({
-        ...location,
-        imageUrl: location.imageUrl || 'assets/img/locations/baratashvili-street-14.jpg',
-        address: location.address || 'Unknown Address',
-        totalCapacity: location.totalCapacity || 0,
-        averageOccupancy: location.averageOccupancy || 'N/A',
-      }));
-    });
+    this.isLocationsLoading = true;
+    this.locationsService.getLocations()
+      .pipe(finalize(() => { this.isLocationsLoading = false; }))
+      .subscribe({
+        next: (data) => {
+          this.locations = data.slice(0, 3).map((location) => ({
+            ...location,
+            imageUrl: location.imageUrl || 'assets/img/locations/baratashvili-street-14.jpg',
+            address: location.address || 'Unknown Address',
+            totalCapacity: location.totalCapacity || 0,
+            averageOccupancy: location.averageOccupancy || 'N/A',
+          }));
+        },
+        error: () => {
+          this.locations = [];
+        },
+      });
   }
 
   waiterAvatarUrl = '';

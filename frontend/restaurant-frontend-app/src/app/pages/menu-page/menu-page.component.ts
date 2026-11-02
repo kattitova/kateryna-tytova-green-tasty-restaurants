@@ -1,10 +1,9 @@
-import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject, HostListener } from '@angular/core';
 import { finalize } from 'rxjs';
 import { DishCardComponent } from '@app/shared/custom-components/dish-card/dish-card.component';
 import { DishesService } from '@app/services/dishes/dishes.service';
 import { DishListResponse } from '@app/models/dishes/dish-list-response.model';
 import { MainCoverImageComponent } from '@app/shared/custom-components/main-cover-image/main-cover-image.component';
-import { LoadingSpinnerComponent } from '@app/shared/custom-components/loading-spinner/loading-spinner.component';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { DishSort } from '@app/models/enums/dish-sort.model';
 import { DishType } from '@app/models/enums/dish-type.model';
@@ -21,7 +20,6 @@ import { ToastService } from '@app/services/toast/toast.service';
     DishCardComponent,
     MainCoverImageComponent,
     DishModalComponent,
-    LoadingSpinnerComponent,
   ],
   templateUrl: './menu-page.component.html',
   styleUrl: './menu-page.component.scss',
@@ -33,6 +31,11 @@ export class MenuPageComponent implements OnInit {
   dishes: DishListResponse[] = [];
   filteredDishes: DishListResponse[] = [];
   isLoadingDishes = false;
+  dishSkeletonCount = 4;
+
+  get dishSkeletonItems(): number[] {
+    return Array.from({ length: this.dishSkeletonCount }, (_, index) => index + 1);
+  }
 
   isPreOrderEnabled = false;
   preOrderReservationId?: string;
@@ -53,6 +56,8 @@ export class MenuPageComponent implements OnInit {
   private readonly orderService = inject(PreOrdersService);
 
   ngOnInit(): void {
+    this.updateDishSkeletonCount();
+
     this.route.queryParams.subscribe((params) => {
       const preOrder = params['preOrder'];
       this.isPreOrderEnabled = !!preOrder;
@@ -76,6 +81,11 @@ export class MenuPageComponent implements OnInit {
 
       this.loadDishes();
     });
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    this.updateDishSkeletonCount();
   }
 
   loadDishes(): void {
@@ -167,5 +177,21 @@ export class MenuPageComponent implements OnInit {
           this.toast.error((err as Error).message, 'Error');
         },
       });
+  }
+
+  private updateDishSkeletonCount(): void {
+    const viewportWidth = window.innerWidth;
+
+    if (viewportWidth <= 768) {
+      this.dishSkeletonCount = 1;
+      return;
+    }
+
+    if (viewportWidth <= 1200) {
+      this.dishSkeletonCount = 2;
+      return;
+    }
+
+    this.dishSkeletonCount = 4;
   }
 }
