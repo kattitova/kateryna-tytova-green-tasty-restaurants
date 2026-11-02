@@ -4,6 +4,7 @@ using APIHandler.Constants.Dishes;
 using APIHandler.Constants.Orders;
 using APIHandler.Entities;
 using APIHandler.Exceptions;
+using APIHandler.Helpers;
 using APIHandler.Mappers;
 using APIHandler.Models.GuestSessions;
 using APIHandler.Models.Orders;
@@ -46,7 +47,7 @@ public class GuestSessionService(
         GroupReservation group = await GetGroupReservationAndValidateAsync(request.GroupReservationId);
 
         Task<Reservation?> reservationTask = reservationRepository.GetReservationByIdAsync(group.ReservationId);
-        Task<int> countTask = guestSessionRepository.CountByGroupReservationId(group.GroupReservationId);
+        Task<List<GuestSession>> sessionsTask = guestSessionRepository.GetAllByGroupReservationIdAsync(group.GroupReservationId);
 
         Reservation reservation = await reservationTask ?? throw new GroupReservationExpiredException($"Associated reservation for group '{request.GroupReservationId}' not found.");
 
@@ -55,7 +56,7 @@ public class GuestSessionService(
             throw new GuestSessionExpiredException($"This pre-order session has expired or is no longer active. Current reservation status: '{reservation.Status}'.");
         }
 
-        int joinedGuestsCount = await countTask;
+        int joinedGuestsCount = (await sessionsTask).GuestsOnly().Count();
 
         if (joinedGuestsCount + 1 >= reservation.GuestCount)
             throw new GuestLimitExceededException($"Guest limit exceeded. Maximum capacity is {reservation.GuestCount}, but {joinedGuestsCount} guests have already joined.");
@@ -220,7 +221,7 @@ public class GuestSessionService(
         await ValidateReservationOwnerAsync(groupReservationId, userId);
 
         var sessions = await guestSessionRepository.GetAllByGroupReservationIdAsync(groupReservationId);
-        var guestSessions = sessions.Where(s => !s.IsOwnerSession).ToList();
+        var guestSessions = sessions.GuestsOnly().ToList();
 
         var dishIds = guestSessions
             .SelectMany(s => s.Dishes)
@@ -282,9 +283,9 @@ public class GuestSessionService(
     {
         var sessions = await guestSessionRepository.GetAllByGroupReservationIdAsync(groupReservationId);
 
-        // Owner is always 1 active participant. 
+        // Owner is always 1 active participant. Owner sessions are not joined guests.
         // If sessions is null/empty, it safely evaluates to 0 joined guests + 1 owner = 1.
-        return (sessions?.Count ?? 0) + 1;
+        return (sessions ?? []).GuestsOnly().Count() + 1;
     }
 
     private async Task ValidateGroupReservationId(string groupReservationId) => await GetGroupReservationAndValidateAsync(groupReservationId);
@@ -352,11 +353,35 @@ public class GuestSessionService(
         }
     }
 
-    public async Task CreateGroupOwnerSessionAsync(string userId, string groupReservationId)
+    public async Task<OwnerSessionIdResponse> GetOrCreateOwnerSessionIdAsync(string userId, string reservationId)
+    {
+        var reservation = await reservationRepository.GetReservationByIdAsync(reservationId)
+            ?? throw new ReservationNotFoundException("Reservation not found.");
+
+        if (!string.Equals(reservation.CustomerId, userId, StringComparison.Ordinal))
+        {
+            throw new ActionForbiddenException("Only the reservation owner can perform this action.");
+        }
+
+        var group = await groupReservationRepository.GetByReservationIdAsync(reservationId)
+            ?? throw new GroupReservationNotFoundException();
+
+        string ownerSessionId = OwnerSessionIdFor(group.GroupReservationId);
+        if (await guestSessionRepository.GetByGuestSessionId(ownerSessionId) is null)
+        {
+            await CreateGroupOwnerSessionAsync(userId, group.GroupReservationId);
+        }
+
+        return new OwnerSessionIdResponse(ownerSessionId);
+    }
+
+    private static string OwnerSessionIdFor(string groupReservationId) => "owner-" + groupReservationId;
+
+    private async Task CreateGroupOwnerSessionAsync(string userId, string groupReservationId)
     {
         var session = new GuestSession()
         {
-            Id = Guid.NewGuid().ToString(),
+            Id = OwnerSessionIdFor(groupReservationId),
             GroupReservationId = groupReservationId,
             GuestName = "Owner",
             Dishes = [],

@@ -20,6 +20,7 @@ Fix these items together in one task. The response shape decision (1.2) changes 
 - **Fix:** use the private helper `ToGuestParticipant`, which `GetGroupSessionsAsync` already uses. It skips unknown dishes with `TryGetValue`. This also deletes the duplicated item and total code in the three methods.
 - **Before the fix:** write tests for `DeleteGuestSessionAsync` that pin its current behaviour. It has no tests today.
 - **Decision needed:** `DeleteGuestSessionAsync` does not filter out owner sessions (`IsOwnerSession`). `GetGroupSessionsAsync` calls `ToGuestParticipant` after that filter. Decide whether DELETE must also return guests only.
+- **Update (ADR 0002):** owner sessions exist in data now. `GET /reservations/{reservationId}/guest-session-id` creates one with the id `owner-{groupReservationId}`. As a result, DELETE can list the owner session as a guest named "Owner". The owner can also delete the owner session through DELETE. No data is lost, because the next GET creates it again. When you fix DELETE, filter with `Helpers/GuestSessionExtensions.GuestsOnly()`, as the other four callers do. Also decide whether DELETE must refuse the owner session id.
 
 ### 1.2 The response is PascalCase (P2)
 
@@ -96,17 +97,46 @@ Fix these items together in one task. The response shape decision (1.2) changes 
   - 500 (from `ExceptionHandler`) on `getGroupReservationByToken`, `getAllSessionsForGroup`, `submitGuestCart`, `getGuestSessionMenu`, `getInviteToken` and `deleteGuestSession`.
 - **Fix:** add each code with the schema that the code sends. Do this after the fixes in section 2, because they change some codes.
 
-### 3.2 Swagger documents paths that have no route (P2)
-
-- **Where:** `swagger_src/swagger-ui/swagger-endpoints.yaml`: `POST /guest/groups/{groupReservationId}/submit` and `GET /reservations/{reservationId}/guest-session-id`.
-- **Problem:** `Routing/RouteRegistry.cs` has no route for these paths. A call gets 404 "Not Found" from `Function.cs`.
-- **Fix:** delete them from Swagger, or implement them if the product still needs them.
-
 ### 3.3 `docs/ApiRoutes.md` uses old paths (P2)
 
-- **Where:** `docs/ApiRoutes.md:1113`, `:1128`, `:1172`, `:1182`.
+- **Where:** `docs/ApiRoutes.md:1113`, `:1128`, `:1172`.
 - **Problem:** these entries use `/guest-sessions/...` and `/group-reservations/...`. The code uses `/guest/sessions/...` and `/guest/groups/...`.
 - **Fix:** change each path to the route in `Routing/RouteRegistry.cs`, and check each body against its handler.
+- **Also:** `homework-backend.md:78` names the submit path as `/group-reservations/{groupReservationId}/submit`. The route is `POST /guest/groups/{groupReservationId}/submit` (user decision, ADR 0002).
+
+### 3.4 The 401 row of `GET .../sessions` is not complete (P2)
+
+- **Where:** `docs/ApiRoutes.md`, entry `GET /guest/groups/{groupReservationId}/sessions`.
+- **Problem:** the 401 row does not say that a `sub` claim that is empty or contains only white space also gets 401. The handler uses `IsNullOrWhiteSpace`.
+- **Fix:** use the same 401 text as the `guest-session-id` and `submit` entries.
+
+## 4. Follow-ups from the owner session and group submit task (ADR 0002)
+
+Recorded on 2026-11-02. Item 4.3 existed before that task.
+
+### 4.1 The frontend does not call the new endpoints (P2)
+
+- **Where:** `frontend/restaurant-frontend-app`.
+- **Problem:** no frontend model or call exists for `GET /reservations/{reservationId}/guest-session-id` (response `{"guestSessionId"}`) and `POST /guest/groups/{groupReservationId}/submit` (request `{"reservationId"}`, response `[{"dishId", "quantity"}]`). The user approved a separate frontend task.
+- **Fix:** add the models and the service calls in one frontend task. Use `docs/ApiRoutes.md` as the contract.
+
+### 4.2 The owner session cannot use the guest endpoints (P2)
+
+- **Where:** `Services/GuestSessions/GuestSessionService.cs` (`IsAuthorizedAsync`, owner session creation).
+- **Problem:** the owner session has no token hash, so every `/guest/sessions/{guestSessionId}/...` endpoint returns 401 for it. The owner's own dishes stay in the `Order`.
+- **Fix:** decide with the frontend task (4.1) how the owner adds dishes in a group flow. Then give the owner session a token, or let the owner act on it through the Cognito `sub`.
+
+### 4.3 The Lambda IAM policy is too broad (P1)
+
+- **Where:** Syndicate policy `lambda-basic-execution` in `deployment_resources.json`, used by `api-handler-role`.
+- **Problem:** the policy allows its DynamoDB, S3, SQS, Cognito and SES actions on `"Resource": "*"`. The role trust policy has no `aws:SourceAccount` condition. This task did not widen it.
+- **Fix:** limit each action to the table, bucket, queue and user pool ARNs. Add `aws:SourceAccount` to the trust policy. The group submit transaction needs only `dynamodb:UpdateItem` on the `Orders` and `GroupReservations` tables. Ask `infra-reviewer` to review the change.
+
+### 4.4 A handler namespace does not match its folder (P2)
+
+- **Where:** `Handlers/GroupReservations/GetGuestReservationHandler.cs`.
+- **Problem:** the file declares `APIHandler.Handlers.GuestReservations`. The other files in the folder use `APIHandler.Handlers.GroupReservations`.
+- **Fix:** change the namespace and the `using` lines that refer to it.
 
 ## Suggested order
 
@@ -114,3 +144,5 @@ Fix these items together in one task. The response shape decision (1.2) changes 
 2. Items 2.2, 2.3 and 2.4: small fixes with a test each.
 3. Item 2.1: changes the API contract. Agree on it with the frontend first.
 4. Items 2.5 and section 3: docs, after the code changes above.
+5. Item 4.3: infra, with `infra-reviewer`.
+6. Items 4.1 and 4.2: one frontend task, with a backend change if 4.2 needs one.

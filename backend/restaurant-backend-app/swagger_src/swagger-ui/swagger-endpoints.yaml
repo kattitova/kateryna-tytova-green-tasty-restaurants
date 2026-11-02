@@ -162,7 +162,13 @@ paths:
       tags:
         - Group Reservations
       summary: Submit group pre-order
-      description: Submits the pre-order for a group reservation, converting guest sessions to orders
+      description: >-
+        Only the reservation owner can send this request.
+        The request adds the quantities of each dishId from the submitted guest sessions (isSubmitted true).
+        It adds the dishes to the order of the reservation and sets the order status to SubmittedByCustomer.
+        It sets the group reservation status to Submitted.
+        One DynamoDB transaction writes the order and the group reservation, so both change or neither changes.
+        The response lists only the dishes from the guest sessions.
       operationId: submitGroupPreOrder
       parameters:
         - name: groupReservationId
@@ -171,6 +177,8 @@ paths:
           description: The ID of the group reservation
           schema:
             type: string
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -179,22 +187,49 @@ paths:
               $ref: '#/components/schemas/SubmitGroupPreOrderRequest'
       responses:
         '200':
-          description: Group pre-order submitted successfully
+          description: Consolidated dishes from the submitted guest sessions, in the order of first occurrence
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  type: object
-                  description: Enriched dishes data
+                  $ref: '#/components/schemas/GroupPreOrderDish'
         '400':
-          description: Invalid request - missing parameters or validation error
+          description: >-
+            ErrorResponse - the groupReservationId path parameter is missing or empty ("Missing 'groupReservationId' in path parameters."),
+            the body is missing, empty or null ("Body is empty"), or the body is not valid JSON ("Invalid json body").
+            ValidationErrorResponse - reservationId is missing, null or empty.
+            ErrorCodeResponse - GroupReservationSubmitted (the group reservation is submitted),
+            GroupReservationExpired (the group reservation is closed),
+            Unknown (no submitted guest sessions, no dishes in the submitted guest sessions, or no order for the reservation),
+            or GroupReservationSubmitted after all other checks (a parallel request changed the group reservation status before the write).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitGroupPreOrderBadRequestResponse'
+        '401':
+          description: Missing or invalid Cognito token, or the token has no sub claim
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not the owner of the reservation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: >-
+            The reservation does not exist ("Reservation not found."),
+            or the group reservation does not exist or belongs to a different reservation ("Group reservation was not found")
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
-          description: Internal server error
+          description: >-
+            DynamoDB cancels the transaction for a reason other than the status condition, or another error occurs ("Internal Server Error")
           content:
             application/json:
               schema:
@@ -496,7 +531,10 @@ paths:
       tags:
         - Guest Sessions
       summary: Get owner's guest session ID
-      description: Retrieves the guest session ID for the reservation owner
+      description: >-
+        Returns the ID of the owner session of the group reservation of this reservation.
+        The first request creates the owner session. Later requests return the same ID.
+        This request works in every group reservation status.
       operationId: getOwnerSessionId
       parameters:
         - name: reservationId
@@ -515,13 +553,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/GetOwnerSessionIdResponse'
         '400':
-          description: Invalid request or validation error
+          description: The reservationId path parameter is missing or empty
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid Cognito token, or the token has no sub claim
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not the owner of the reservation
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
-          description: Reservation not found
+          description: >-
+            The reservation does not exist ("Reservation not found."),
+            or the reservation has no group reservation ("Group reservation was not found")
           content:
             application/json:
               schema:
@@ -582,8 +634,22 @@ components:
       properties:
         reservationId:
           type: string
-          description: The ID of the reservation (owner of the group)
+          description: The ID of the parent reservation
           example: res-123
+
+    GroupPreOrderDish:
+      type: object
+      required:
+        - dishId
+        - quantity
+      properties:
+        dishId:
+          type: string
+          example: dish1
+        quantity:
+          type: integer
+          description: The sum of the quantities of this dish in the submitted guest sessions
+          example: 3
 
     GroupReservationStatusResponse:
       type: object
@@ -734,8 +800,8 @@ components:
       properties:
         guestSessionId:
           type: string
-          description: The guest session ID of the reservation owner
-          example: session-owner-123
+          description: The guest session ID of the reservation owner. The value is "owner-" followed by the groupReservationId.
+          example: owner-group-1
 
     DishResponse:
       type: object
@@ -870,6 +936,13 @@ components:
       description: A 400 body. Path and body checks in the handler send ErrorResponse. A ValidationException from the service sends ErrorCodeResponse.
       oneOf:
         - $ref: '#/components/schemas/ErrorResponse'
+        - $ref: '#/components/schemas/ErrorCodeResponse'
+
+    SubmitGroupPreOrderBadRequestResponse:
+      description: A 400 body for POST /guest/groups/{groupReservationId}/submit. A missing path parameter, an empty body or invalid JSON sends ErrorResponse. A body that fails data annotations sends ValidationErrorResponse. A ValidationException from the service sends ErrorCodeResponse.
+      oneOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - $ref: '#/components/schemas/ValidationErrorResponse'
         - $ref: '#/components/schemas/ErrorCodeResponse'
 
     CreateGuestSessionBadRequestResponse:

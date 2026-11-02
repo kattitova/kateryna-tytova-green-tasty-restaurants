@@ -11,4 +11,5 @@ public interface IGroupReservationRepository
     Task DeleteGroupReservationAsync(GroupReservation groupReservation);
     Task SaveGroupReservationAsync(GroupReservation groupReservation);
     Task<GroupReservation?> GetGroupReservationByTokenAsync(string token);
+    Task<bool> SubmitGroupPreOrderAsync(string groupReservationId, Order order);
 }

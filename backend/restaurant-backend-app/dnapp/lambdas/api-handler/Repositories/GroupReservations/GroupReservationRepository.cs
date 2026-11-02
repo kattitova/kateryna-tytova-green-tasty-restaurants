@@ -1,7 +1,10 @@
 ﻿using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DocumentModel;
+using Amazon.DynamoDBv2.Model;
 using APIHandler.Constants;
 using APIHandler.Entities;
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -10,6 +13,13 @@ namespace APIHandler.Repositories.GroupReservations;
 public class GroupReservationRepository : IGroupReservationRepository
 {
     private static readonly string GroupReservationsTableName = ResourceNames.GroupReservationsTableName;
+
+    // Transaction item order in SubmitGroupPreOrderAsync: 0 = order, 1 = group.
+    // TransactionCanceledException.CancellationReasons follow the same order.
+    private const int GroupItemIndex = 1;
+    private const string StatusAttributeName = "status";
+    private const string ConditionalCheckFailed = "ConditionalCheckFailed";
+
     private readonly IDynamoDBContext _dynamoDbContext;
 
     public GroupReservationRepository(IDynamoDBContext dynamoDbContext)
@@ -53,4 +63,47 @@ public class GroupReservationRepository : IGroupReservationRepository
 
         return results.FirstOrDefault();
     }
+
+    public async Task<bool> SubmitGroupPreOrderAsync(string groupReservationId, Order order)
+    {
+        ITransactWrite<Order> orderPart = _dynamoDbContext.CreateTransactWrite<Order>(
+            new TransactWriteConfig { OverrideTableName = ResourceNames.OrdersTableName });
+        orderPart.AddSaveItem(order);
+
+        ITransactWrite<GroupReservation> groupPart = _dynamoDbContext.CreateTransactWrite<GroupReservation>(
+            new TransactWriteConfig { OverrideTableName = GroupReservationsTableName });
+        groupPart.AddSaveItem(groupReservationId, SetStatusSubmitted(), StatusIsOpen());
+
+        try
+        {
+            await _dynamoDbContext.CreateMultiTableTransactWrite(orderPart, groupPart).ExecuteAsync();
+            return true;
+        }
+        catch (TransactionCanceledException ex) when (IsGroupConditionFailure(ex))
+        {
+            return false;
+        }
+    }
+
+    private static Expression SetStatusSubmitted() => new()
+    {
+        ExpressionStatement = "SET #status = :submitted",
+        ExpressionAttributeNames = { ["#status"] = StatusAttributeName },
+        ExpressionAttributeValues = { [":submitted"] = StatusNumber(GroupReservationStatus.Submitted) }
+    };
+
+    private static Expression StatusIsOpen() => new()
+    {
+        ExpressionStatement = "#status = :open",
+        ExpressionAttributeNames = { ["#status"] = StatusAttributeName },
+        ExpressionAttributeValues = { [":open"] = StatusNumber(GroupReservationStatus.Open) }
+    };
+
+    // Status has no converter, so the SDK stores it as a number (N). The expression values must match that type.
+    private static Primitive StatusNumber(GroupReservationStatus status) =>
+        new(((int)status).ToString(CultureInfo.InvariantCulture), saveAsNumeric: true);
+
+    private static bool IsGroupConditionFailure(TransactionCanceledException ex) =>
+        ex.CancellationReasons is { Count: > GroupItemIndex } reasons
+        && reasons[GroupItemIndex].Code == ConditionalCheckFailed;
 }

@@ -555,12 +555,31 @@ Response: `200 OK`
 ```
 
 ### `GET` /reservations/{reservationId}/guest-session-id
-Response: `200 OK`
+Auth: Cognito ID token. The caller must be the owner of the reservation.
+
+Response: 200 OK
 ```json
 {
-  "guestSessionId": "string"
+  "guestSessionId": "owner-group-1"
 }
 ```
+The value is the prefix `owner-` and then the `groupReservationId` of the group reservation of this reservation.
+
+Errors:
+
+| Status | When | Body |
+|---|---|---|
+| 400 | The `reservationId` path parameter is missing or empty. | `{"error": "Missing 'reservationId' in path parameters."}` |
+| 401 | The token has no `sub` claim, or the claim is empty or contains only white space. | `{"error": "Unauthorized."}` |
+| 403 | The caller is not the owner of the reservation. A reservation without a customer has no owner. | `{"error": "Only the reservation owner can perform this action."}` |
+| 404 | The reservation does not exist. | `{"error": "Reservation not found."}` |
+| 404 | The reservation has no group reservation. | `{"error": "Group reservation was not found"}` |
+
+Notes:
+- The first request creates the owner session. Later requests return the same id and do not write.
+- This request works in every group reservation status.
+- The owner session has no guest session token. Thus no token passes the token check of the `/guest/sessions/{guestSessionId}` endpoints for the owner session id.
+- If the token is missing or not valid, the API Gateway Cognito authorizer sends 401 before the Lambda runs. That body comes from API Gateway, not from the table above.
 
 
 ### `DELETE` /reservations
@@ -1179,13 +1198,65 @@ Response: 200 OK
 }
 ```
 
-### `POST` /group-reservations/{groupReservationId}/submit
-Response: 200 OK
+### `POST` /guest/groups/{groupReservationId}/submit
+Auth: Cognito ID token. The caller must be the owner of the reservation.
+
+Request body:
 ```json
 {
-  "message": "Group reservation pre-order submitted successfully."
+  "reservationId": "reservation-1"
 }
 ```
+
+Response: 200 OK
+```json
+[
+  {
+    "dishId": "dish1",
+    "quantity": 3
+  },
+  {
+    "dishId": "dish2",
+    "quantity": 2
+  }
+]
+```
+
+Errors:
+
+| Status | When | Body |
+|---|---|---|
+| 400 | The `groupReservationId` path parameter is missing or empty. | `{"error": "Missing 'groupReservationId' in path parameters."}` |
+| 401 | The token has no `sub` claim, or the claim is empty or contains only white space. | `{"error": "Unauthorized."}` |
+| 400 | The body is missing, empty or `null`. | `{"error": "Body is empty"}` |
+| 400 | The body is not valid JSON. | `{"error": "Invalid json body"}` |
+| 400 | `reservationId` is missing, `null` or empty. | `{"title": "One or more validation errors occurred.", "errors": {"ReservationId": ["The ReservationId field is required."]}}` |
+| 404 | The reservation does not exist. | `{"error": "Reservation not found."}` |
+| 403 | The caller is not the owner of the reservation. A reservation without a customer has no owner. | `{"error": "Only the reservation owner can perform this action."}` |
+| 404 | The group reservation does not exist, or it belongs to a different reservation. | `{"error": "Group reservation was not found"}` |
+| 400 | The group reservation status is `Submitted`. | `{"message": "Group reservation was submitted.", "errorCode": "GroupReservationSubmitted"}` |
+| 400 | The group reservation status is `Closed`. | `{"message": "Group reservation is expired.", "errorCode": "GroupReservationExpired"}` |
+| 400 | No guest session of the group has `isSubmitted: true`. | `{"message": "No submitted guest sessions for group reservation '{groupReservationId}'.", "errorCode": "Unknown"}` |
+| 400 | The submitted guest sessions have no dishes. | `{"message": "Submitted guest sessions contain no dishes.", "errorCode": "Unknown"}` |
+| 400 | The reservation has no order. | `{"message": "Active pre-order for reservation '{reservationId}' not found.", "errorCode": "Unknown"}` |
+| 400 | A parallel request changed the group reservation status before the write. | `{"message": "Group reservation was submitted.", "errorCode": "GroupReservationSubmitted"}` |
+| 500 | DynamoDB cancels the transaction for a reason other than the status condition, or another error occurs. | `{"error": "Internal Server Error"}` |
+
+The checks run in the order of the table. In the messages, `{groupReservationId}` and `{reservationId}` are the values from the request.
+
+Notes:
+- The request uses only the guest sessions with `isSubmitted: true`. The request also uses the owner session when it has `isSubmitted: true`.
+- The request adds the quantities of each `dishId`. The response lists each dish one time, in the order of its first occurrence.
+- The request adds the dishes to the order of the reservation:
+  - An order item with the same `dishId` and state `Pending` or `Confirmed` gets the quantity added. Its state becomes `Pending`.
+  - An order item with the same `dishId` and state `Canceled` gets the quantity from the guest sessions. Its state becomes `Pending`.
+  - A dish without an order item becomes a new `Pending` item at the end of the list.
+  - Order items for other dishes do not change.
+- The order status becomes `SubmittedByCustomer`, and the group reservation status becomes `Submitted`. One DynamoDB transaction writes both items, so both change or neither changes.
+- The transaction writes the group reservation only if its status is `Open`. A second or parallel submit gets 400 `GroupReservationSubmitted`.
+- After the submit, guests cannot change their sessions.
+- The response lists only the dishes from the guest sessions. It does not list the other order items.
+- If the token is missing or not valid, the API Gateway Cognito authorizer sends 401 before the Lambda runs. That body comes from API Gateway, not from the table above.
 
 ### `GET` /guest/groups/{groupReservationId}/sessions
 Auth: Cognito ID token. The caller must be the owner of the parent reservation.
