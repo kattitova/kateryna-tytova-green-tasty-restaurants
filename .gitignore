@@ -46,3 +46,6 @@ crash.*.log
 
 # Claude Code agent pipeline work files
 .claude/work/
+
+# Claude Code agent action log (hooks)
+.agent-log/

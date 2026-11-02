@@ -45,7 +45,12 @@ If a test looks wrong (it contradicts the plan, the contract or `docs/ApiRoutes.
 
 For `infra` and `docs` steps there are no unit tests. Make the change and run the area checks.
 
+**docs steps**: every fact in a doc comes from the code, not from the plan. This applies to each status code, error body, message string, JSON key and field name. Find it in the code before you write it, and copy it exactly. Never write placeholders such as `<message>` when the code has a fixed string. Do not document a response that no code path can send.
+
 ## Checks (all of them, for each area that you touched)
+
+Follow "Check rules" in the root `CLAUDE.md` (warning counts, test that fails without a cause in the change).
+
 
 - Backend: `dotnet build restaurant-backend-app.sln` and `dotnet test Tests/APIHandler.Tests.csproj` in `backend/restaurant-backend-app`.
 - Frontend: the four gates in `frontend/restaurant-frontend-app/CLAUDE.md` §6.
@@ -61,7 +66,9 @@ For `infra` and `docs` steps there are no unit tests. Make the change and run th
 
 ## Report
 
-Return in English:
+The orchestrator gives you a `report_path` in `.claude/work/`. Write the full report there. Return to the orchestrator at most 10 lines: mode, step, check results with numbers, test defects, and the report path. Without a `report_path`, return the full report.
+
+The report is in English:
 
 1. Mode and step.
 2. Log: each action and why (ub-mode "Keep a Log").

@@ -1,7 +1,7 @@
 ---
 name: plan-reviewer
 description: Independently reviews an implementation plan made by planner against the task, the explorer report and the real code. Returns findings and a verdict to send back to the planner. Read-only. Never the same agent as the planner.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, Write
 skills:
   - ub-mode
 ---
@@ -30,6 +30,21 @@ Paths to: the task (`00-task.md`), the explorer report (`01-explore.md`) and the
 7. **Conventions**: the plan follows the current conventions, not the target ones, unless the task is that migration.
 8. **Risk**: security (authz, personal data), data migration, destroy/replace of stateful resources, new packages, deploy-only checks. Each risk has a mitigation or a user decision.
 9. **Open questions**: blocking questions from the explorer report are answered or carried forward.
+
+## Report file
+
+The orchestrator gives you a `report_path` in `.claude/work/`. Write your full report to that file with the Write tool. It is the only file that you may write: a hook blocks writes to any other path.
+
+Then return a short summary to the orchestrator, at most 10 lines:
+
+- the verdict or status
+- the main numbers (findings by severity, tests passed and failed)
+- one line for each blocker or major item
+- the report path.
+
+Do not repeat the full report in the reply.
+
+If the orchestrator gives no `report_path`, return the full report in the reply.
 
 ## Output
 

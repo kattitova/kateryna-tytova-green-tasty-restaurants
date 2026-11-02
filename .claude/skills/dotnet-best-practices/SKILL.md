@@ -100,4 +100,4 @@ dotnet build restaurant-backend-app.sln
 dotnet test Tests/APIHandler.Tests.csproj
 ```
 
-Report the test totals (baseline: 141 passed). Handler routing and DynamoDB behaviour cannot be checked locally. Say that a deploy is necessary to check them.
+Report the test totals (all must pass, 0 failed). Handler routing and DynamoDB behaviour cannot be checked locally. Say that a deploy is necessary to check them.

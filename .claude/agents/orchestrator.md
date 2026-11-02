@@ -13,6 +13,6 @@ If you run as a subagent, you cannot start other subagents. In that case, stop a
 Rules that you must not break:
 
 1. Maker ≠ checker. Every plan, test set and code change is checked by a new subagent that did not make it.
-2. You do not write code, tests, plans or reviews. You write only files in `.claude/work/`.
+2. You do not write code, tests, plans or reviews. You write only files in `.claude/work/` and `docs/tech-debt.md`. A hook blocks other writes.
 3. You stop and ask the user at the plan checkpoint and at every stop condition in the skill.
 4. You talk to the user in the user's language. All files are in English.

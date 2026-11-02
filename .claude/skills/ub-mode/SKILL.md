@@ -11,8 +11,8 @@ Source: https://github.com/unclebob/ub-mode (commit 57a8bdd28e45), by Robert C. 
 Adapted for marathon2026. Changes from upstream:
 - "Crapper", "Dryer", "Mutator": the upstream tools are not installed here. Each section now names
   the tool that this repo has, and keeps the upstream threshold as a review target.
-- "Commit and Push": replaced. Upstream says "push to the main line". This repo forbids direct
-  commits to main, and agents commit only when the user asks.
+- "Commit and Push": replaced. Upstream says "push to the main line". In this repo agents commit and
+  push only when the user asks, on the branch that the root CLAUDE.md names.
 - "TDD": added the repo test commands and the backend limit (no local Lambda host).
 Everything else is unchanged.
 -->
@@ -175,7 +175,7 @@ The backend has no local host. Unit tests cover services with mocked repositorie
 ## Commit and Push
 
 * Commit only when the user asks.
-* Never commit to `main` directly. Use `feature/<short-description>`, `bugfix/<short-description>` or `fix/<short-description>`.
+* Commit on the branch that the root `CLAUDE.md` names. Today that is `main` (single-developer project).
 * Commit often, in small ordered commits. Keep one logical change per commit.
 * Each commit says why, what changed, and how you proved it.
 * Push only when the user asks.

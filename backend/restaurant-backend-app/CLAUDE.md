@@ -11,7 +11,7 @@ Run from `backend/restaurant-backend-app`:
 | Command | Notes |
 |---|---|
 | `dotnet build restaurant-backend-app.sln` | Builds all three Lambdas and the tests. Existing warnings: nullable `CS86xx`, obsolete QuestPDF `CS0618`, `xUnit1006`. Do not add new ones. |
-| `dotnet test Tests/APIHandler.Tests.csproj` | Baseline: 141 passed, 0 failed. |
+| `dotnet test Tests/APIHandler.Tests.csproj` | All tests must pass, 0 failed. |
 | `dotnet test Tests/APIHandler.Tests.csproj --collect:"XPlat Code Coverage"` | Coverage through coverlet. |
 | `syndicate build` / `syndicate deploy` | Deploy. Only when the user asks. Needs the Syndicate venv and AWS credentials (`local-setup-guide.md`). |
 
