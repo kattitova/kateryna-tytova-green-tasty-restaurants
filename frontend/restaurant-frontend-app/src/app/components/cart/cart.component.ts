@@ -36,8 +36,7 @@ import { SubmittedOrderComponent } from './components/submitted-order/submitted-
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CartComponent implements OnInit {
-  private readonly preOrdersService =
-    inject(PreOrdersService);
+  private readonly preOrdersService = inject(PreOrdersService);
 
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -51,14 +50,10 @@ export class CartComponent implements OnInit {
   readonly submitOrderId = signal<string | null>(null);
 
   readonly submittedOrders = computed(() =>
-    this.orders().filter(
-      (order) => order.status === 1 || order.status === 3,
-    ),
+    this.orders().filter((order) => order.status === 1 || order.status === 3)
   );
 
-  readonly unsubmittedOrders = computed(() =>
-    this.orders().filter((order) => order.status === 0),
-  );
+  readonly unsubmittedOrders = computed(() => this.orders().filter((order) => order.status === 0));
 
   readonly submittedOrder = computed(() => {
     const orderId = this.submitOrderId();
@@ -67,9 +62,7 @@ export class CartComponent implements OnInit {
       return undefined;
     }
 
-    return this.orders().find(
-      (order) => order.orderId === orderId,
-    );
+    return this.orders().find((order) => order.orderId === orderId);
   });
 
   ngOnInit(): void {
@@ -126,10 +119,7 @@ export class CartComponent implements OnInit {
           this.loadOrders();
         },
         error: (error) => {
-          console.error(
-            `Error cancelling order ${orderId}:`,
-            error,
-          );
+          console.error(`Error cancelling order ${orderId}:`, error);
         },
       });
   }
@@ -149,10 +139,7 @@ export class CartComponent implements OnInit {
           this.loadOrders();
         },
         error: (error) => {
-          console.error(
-            `Error un-submitting order ${orderId}:`,
-            error,
-          );
+          console.error(`Error un-submitting order ${orderId}:`, error);
         },
       });
   }
@@ -173,10 +160,7 @@ export class CartComponent implements OnInit {
           this.loadOrders();
         },
         error: (error) => {
-          console.error(
-            `Error submitting order ${orderId}:`,
-            error,
-          );
+          console.error(`Error submitting order ${orderId}:`, error);
         },
       });
   }
@@ -186,11 +170,7 @@ export class CartComponent implements OnInit {
     void this.router.navigate(['/menu']);
   }
 
-  updateDishQuantity(
-    orderId: string,
-    itemId: string,
-    quantity: number,
-  ): void {
+  updateDishQuantity(orderId: string, itemId: string, quantity: number): void {
     if (quantity <= 0) {
       return;
     }
@@ -206,36 +186,27 @@ export class CartComponent implements OnInit {
       orderItems: originalOrder.orderItems.map((item) =>
         item.dish.id === itemId
           ? {
-            ...item,
-            quantity,
-          }
-          : item,
+              ...item,
+              quantity,
+            }
+          : item
       ),
     };
 
     this.preOrdersService
-      .editPreOrderByReservationId(
-        updatedOrder.reservationId,
-        updatedOrder,
-      )
+      .editPreOrderByReservationId(updatedOrder.reservationId, updatedOrder)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.loadOrders();
         },
         error: (error) => {
-          console.error(
-            `Error updating item ${itemId}:`,
-            error,
-          );
+          console.error(`Error updating item ${itemId}:`, error);
         },
       });
   }
 
-  removeDishFromOrder(
-    orderId: string,
-    itemId: string,
-  ): void {
+  removeDishFromOrder(orderId: string, itemId: string): void {
     const originalOrder = this.findOrder(orderId);
 
     if (!originalOrder) {
@@ -244,34 +215,24 @@ export class CartComponent implements OnInit {
 
     const updatedOrder: Order = {
       ...originalOrder,
-      orderItems: originalOrder.orderItems.filter(
-        (item) => item.dish.id !== itemId,
-      ),
+      orderItems: originalOrder.orderItems.filter((item) => item.dish.id !== itemId),
     };
 
     this.preOrdersService
-      .editPreOrderByReservationId(
-        updatedOrder.reservationId,
-        updatedOrder,
-      )
+      .editPreOrderByReservationId(updatedOrder.reservationId, updatedOrder)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.loadOrders();
         },
         error: (error) => {
-          console.error(
-            `Error removing item ${itemId}:`,
-            error,
-          );
+          console.error(`Error removing item ${itemId}:`, error);
         },
       });
   }
 
   private findOrder(orderId: string): Order | undefined {
-    const order = this.orders().find(
-      (item) => item.orderId === orderId,
-    );
+    const order = this.orders().find((item) => item.orderId === orderId);
 
     if (!order) {
       console.error(`Order with ID ${orderId} not found`);
@@ -287,7 +248,7 @@ export class CartComponent implements OnInit {
       .getPreOrders()
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.isLoadingOrders.set(false)),
+        finalize(() => this.isLoadingOrders.set(false))
       )
       .subscribe({
         next: (orders) => {

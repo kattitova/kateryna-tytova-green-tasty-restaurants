@@ -54,10 +54,7 @@
       </div>
 
       @if (isLoadingDishes) {
-        <app-loading-spinner
-          class="menu-loading"
-          [message]="'Loading dishes...'"
-        />
+        <app-loading-spinner class="menu-loading" [message]="'Loading dishes...'" />
       } @else {
         <div class="dish-cards">
           @for (dish of filteredDishes; track dish) {

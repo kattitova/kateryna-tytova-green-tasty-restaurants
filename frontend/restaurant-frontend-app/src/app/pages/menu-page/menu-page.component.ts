@@ -1,4 +1,4 @@
-import {Component, OnInit, ChangeDetectionStrategy, inject} from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import { finalize } from 'rxjs';
 import { DishCardComponent } from '@app/shared/custom-components/dish-card/dish-card.component';
 import { DishesService } from '@app/services/dishes/dishes.service';
@@ -11,7 +11,7 @@ import { DishType } from '@app/models/enums/dish-type.model';
 import { DishSortingLabels, DishTypeLabels } from '@app/shared/mappers/dish-enum.mapper';
 import { DishModalComponent } from '@app/components/dish-modal/dish-modal.component';
 import { PreOrdersService } from '@app/services/pre-orders/pre-orders.service';
-import {ToastService} from '@app/services/toast/toast.service';
+import { ToastService } from '@app/services/toast/toast.service';
 
 @Component({
   selector: 'app-menu-page',
@@ -50,7 +50,7 @@ export class MenuPageComponent implements OnInit {
   private readonly dishesService = inject(DishesService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private  readonly orderService = inject(PreOrdersService);
+  private readonly orderService = inject(PreOrdersService);
 
   ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {
@@ -85,7 +85,11 @@ export class MenuPageComponent implements OnInit {
 
     this.dishesService
       .getDishes(category, sort)
-      .pipe(finalize(() => { this.isLoadingDishes = false; }))
+      .pipe(
+        finalize(() => {
+          this.isLoadingDishes = false;
+        })
+      )
       .subscribe({
         next: (data) => {
           this.dishes = data.map((dish) => ({
