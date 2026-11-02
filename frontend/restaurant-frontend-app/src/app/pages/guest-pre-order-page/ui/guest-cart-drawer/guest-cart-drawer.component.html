@@ -20,7 +20,7 @@
                 <div class="list">
                     @for (it of items(); track it.dishId) {
                         <div class="item">
-                            <img class="img" [src]="it.imageUrl" alt="" />
+                            <img class="img" [src]="it.imageUrl || 'assets/img/dish.png'" alt="" />
 
                             <div class="info">
                                 <div class="name">{{ it.title }}</div>
