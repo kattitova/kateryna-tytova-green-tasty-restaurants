@@ -142,7 +142,8 @@ export class CartComponent implements OnInit {
   editOrder(orderId: string): void {
     const order = this.findOrder(orderId);
 
-    if (!order) {
+    // Un-submitting a group order would leave it with no submit path in the cart.
+    if (!order || this.orderMode(order) !== 'single') {
       return;
     }
 

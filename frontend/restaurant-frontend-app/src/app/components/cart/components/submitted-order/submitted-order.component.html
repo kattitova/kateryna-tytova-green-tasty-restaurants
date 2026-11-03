@@ -58,12 +58,14 @@
       Cancel Pre-order
     </button>
 
-    <button
-      type="button"
-      class="button button--primary button--large"
-      (click)="editOrder()"
-    >
-      Edit Pre-order
-    </button>
+    @if (canEdit()) {
+      <button
+        type="button"
+        class="button button--primary button--large"
+        (click)="editOrder()"
+      >
+        Edit Pre-order
+      </button>
+    }
   </div>
 </div>

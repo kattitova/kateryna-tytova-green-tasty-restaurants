@@ -35,15 +35,16 @@ export class SubmittedOrderComponent {
       ),
   );
 
-  readonly canEdit = computed((): boolean => {
-    throw new Error('Not implemented');
-  });
+  // Fail closed: only a single-guest order can go back to edit. A group order is submitted from the group flow.
+  readonly canEdit = computed(() => this.orderMode() === 'single');
 
   cancelOrder(): void {
     this.canceled.emit();
   }
 
   editOrder(): void {
-    this.edited.emit();
+    if (this.canEdit()) {
+      this.edited.emit();
+    }
   }
 }
