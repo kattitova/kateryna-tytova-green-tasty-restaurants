@@ -12,14 +12,18 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 
+import { CartOrderMode } from '@app/models/cart/cart-order-mode.model';
 import { Order } from '@app/models/orders/order.model';
 import { PreOrdersService } from '@app/services/pre-orders/pre-orders.service';
+import { ReservationService } from '@app/services/reservation/reservation.service';
+import { ToastService } from '@app/services/toast/toast.service';
 import { LoadingSpinnerComponent } from '@app/shared/custom-components/loading-spinner/loading-spinner.component';
 
 import { CancelOrderModalComponent } from './components/cancel-order-modal/cancel-order-modal.component';
 import { NotSubmittedOrderComponent } from './components/not-submitted-order/not-submitted-order.component';
 import { SubmitOrderModalComponent } from './components/submit-order-modal/submit-order-modal.component';
 import { SubmittedOrderComponent } from './components/submitted-order/submitted-order.component';
+import { CartOrderView } from './models';
 
 @Component({
   selector: 'app-cart',
@@ -37,6 +41,8 @@ import { SubmittedOrderComponent } from './components/submitted-order/submitted-
 })
 export class CartComponent implements OnInit {
   private readonly preOrdersService = inject(PreOrdersService);
+  private readonly reservationService = inject(ReservationService);
+  private readonly toast = inject(ToastService);
 
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -46,6 +52,9 @@ export class CartComponent implements OnInit {
   readonly orders = signal<Order[]>([]);
   readonly isLoadingOrders = signal(false);
 
+  /** Guest count per reservation ID. `null` means not loaded yet, or the load failed. */
+  readonly reservationGuestCounts = signal<ReadonlyMap<string, number> | null>(null);
+
   readonly cancelOrderId = signal<string | null>(null);
   readonly submitOrderId = signal<string | null>(null);
 
@@ -54,6 +63,10 @@ export class CartComponent implements OnInit {
   );
 
   readonly unsubmittedOrders = computed(() => this.orders().filter((order) => order.status === 0));
+
+  readonly unsubmittedOrderViews = computed<CartOrderView[]>(() => {
+    throw new Error('Not implemented');
+  });
 
   readonly submittedOrder = computed(() => {
     const orderId = this.submitOrderId();
@@ -165,6 +178,10 @@ export class CartComponent implements OnInit {
       });
   }
 
+  saveOrder(orderId: string): void {
+    throw new Error('Not implemented');
+  }
+
   addDishToOrder(orderId: string): void {
     console.log(`Adding a dish to order ${orderId}`);
     void this.router.navigate(['/menu']);
@@ -239,6 +256,10 @@ export class CartComponent implements OnInit {
     }
 
     return order;
+  }
+
+  private orderMode(order: Order): CartOrderMode {
+    throw new Error('Not implemented');
   }
 
   private loadOrders(): void {
