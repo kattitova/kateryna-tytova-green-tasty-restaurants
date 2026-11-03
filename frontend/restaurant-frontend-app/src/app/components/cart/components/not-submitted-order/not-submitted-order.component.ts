@@ -7,6 +7,7 @@ import {
   output,
 } from '@angular/core';
 
+import { CartOrderMode } from '@app/models/cart/cart-order-mode.model';
 import { Order } from '@app/models/orders/order.model';
 
 @Component({
@@ -19,8 +20,10 @@ import { Order } from '@app/models/orders/order.model';
 })
 export class NotSubmittedOrderComponent {
   readonly order = input.required<Order>();
+  readonly orderMode = input.required<CartOrderMode>();
 
   readonly submitted = output<string>();
+  readonly saved = output<string>();
   readonly addDish = output<void>();
   readonly removeDish = output<string>();
   readonly updateQuantity = output<{
@@ -34,6 +37,14 @@ export class NotSubmittedOrderComponent {
       0,
     ),
   );
+
+  readonly ctaLabel = computed((): string => {
+    throw new Error('Not implemented');
+  });
+
+  readonly ctaDisabled = computed((): boolean => {
+    throw new Error('Not implemented');
+  });
 
   incrementItemQuantity(itemId: string): void {
     const item = this.findOrderItem(itemId);
@@ -49,6 +60,10 @@ export class NotSubmittedOrderComponent {
     if (item && item.quantity > 1) {
       this.updateItemQuantity(itemId, item.quantity - 1);
     }
+  }
+
+  onCtaClick(): void {
+    throw new Error('Not implemented');
   }
 
   submit(): void {

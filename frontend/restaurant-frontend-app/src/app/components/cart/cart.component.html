@@ -43,6 +43,7 @@
         @for (item of unsubmittedOrders(); track item.orderId) {
           <app-not-submitted-order
             [order]="item"
+            [orderMode]="'single'"
             (submitted)="submitOrder($event)"
             (removeDish)="removeDishFromOrder(item.orderId, $event)"
             (addDish)="addDishToOrder(item.orderId)"
