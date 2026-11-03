@@ -304,4 +304,96 @@ describe('CartComponent', () => {
       expect(preOrdersServiceMock.submitPreOrderByReservationId).not.toHaveBeenCalled();
     });
   });
+
+  describe('submitted orders', () => {
+    const submittedOrder = (status: number): Order =>
+      ({
+        ...unsubmittedOrder,
+        orderId: 'order-2',
+        status,
+        orderItems: [
+          {
+            quantity: 2,
+            state: 1,
+            dish: { id: 'dish-1', name: 'Caesar Salad', price: 10 },
+          },
+        ],
+      }) as Order;
+
+    const submittedButton = (text: string): HTMLButtonElement | undefined =>
+      Array.from(host().querySelectorAll<HTMLButtonElement>('app-submitted-order button')).find(
+        (button) => button.textContent?.trim() === text
+      );
+
+    beforeEach(() => {
+      preOrdersServiceMock.unsubmitPreOrderByReservationId.and.returnValue(of({}));
+    });
+
+    it('shows "Edit Pre-order" for a status 1 order with 1 guest', () => {
+      renderWith([submittedOrder(1)], of([reservation('res-2', 4), reservation('res-1', 1)]));
+
+      expect(submittedButton('Edit Pre-order')).toBeDefined();
+    });
+
+    it('hides "Edit Pre-order" and shows "Cancel Pre-order" for a status 1 order with 4 guests', () => {
+      renderWith([submittedOrder(1)], of([reservation('res-2', 1), reservation('res-1', 4)]));
+
+      expect(submittedButton('Cancel Pre-order')).toBeDefined();
+      expect(submittedButton('Edit Pre-order')).toBeUndefined();
+    });
+
+    it('hides "Edit Pre-order" for a status 3 order with 4 guests', () => {
+      renderWith([submittedOrder(3)], of([reservation('res-1', 4)]));
+
+      expect(submittedButton('Cancel Pre-order')).toBeDefined();
+      expect(submittedButton('Edit Pre-order')).toBeUndefined();
+    });
+
+    it('hides "Edit Pre-order" and shows "Cancel Pre-order" when the reservations load fails', () => {
+      renderWith(
+        [submittedOrder(1)],
+        throwError(() => new Error('reservations failed'))
+      );
+
+      expect(submittedButton('Cancel Pre-order')).toBeDefined();
+      expect(submittedButton('Edit Pre-order')).toBeUndefined();
+    });
+
+    it('does not unsubmit a group order when editOrder is called directly', () => {
+      renderWith([submittedOrder(1)], of([reservation('res-1', 4)]));
+
+      component.editOrder('order-2');
+
+      expect(preOrdersServiceMock.unsubmitPreOrderByReservationId).not.toHaveBeenCalled();
+    });
+
+    it('does not unsubmit when the reservations load failed and editOrder is called directly', () => {
+      renderWith(
+        [submittedOrder(1)],
+        throwError(() => new Error('reservations failed'))
+      );
+
+      component.editOrder('order-2');
+
+      expect(preOrdersServiceMock.unsubmitPreOrderByReservationId).not.toHaveBeenCalled();
+    });
+
+    it('does not unsubmit when the reservation is not in the list and editOrder is called directly', () => {
+      renderWith([submittedOrder(1)], of([reservation('res-2', 1)]));
+
+      component.editOrder('order-2');
+
+      expect(preOrdersServiceMock.unsubmitPreOrderByReservationId).not.toHaveBeenCalled();
+    });
+
+    it('unsubmits a single order by reservation ID when editOrder is called directly', () => {
+      renderWith([submittedOrder(1)], of([reservation('res-2', 4), reservation('res-1', 1)]));
+
+      component.editOrder('order-2');
+
+      expect(preOrdersServiceMock.unsubmitPreOrderByReservationId).toHaveBeenCalledOnceWith(
+        'res-1'
+      );
+    });
+  });
 });
