@@ -267,6 +267,16 @@ describe('CartComponent', () => {
       expect(preOrdersServiceMock.editPreOrderByReservationId).not.toHaveBeenCalled();
     });
 
+    it('shows no toast and does not close the cart when saveOrder gets an unknown order ID', () => {
+      renderWith([unsubmittedOrder], of([reservation('res-1', 4)]));
+      const closeSpy = spyOn(component.closeCartEvent, 'emit');
+
+      component.saveOrder('missing-id');
+
+      expect(toastMock.success).not.toHaveBeenCalled();
+      expect(closeSpy).not.toHaveBeenCalled();
+    });
+
     it('does not submit a group order when submitOrder is called directly', () => {
       renderWith([unsubmittedOrder], of([reservation('res-1', 4)]));
 
