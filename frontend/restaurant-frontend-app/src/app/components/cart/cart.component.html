@@ -34,20 +34,17 @@
 
     @if (!isLoadingOrders() && unsubmittedOrders().length > 0) {
       <div class="orders-list">
-        <div class="list-header">
-          <h3>Not submitted pre-orders</h3>
+        <h4>My Pre-Order</h4>
 
-          <span class="body"> You have not submitted pre-orders </span>
-        </div>
-
-        @for (item of unsubmittedOrders(); track item.orderId) {
+        @for (view of unsubmittedOrderViews(); track view.order.orderId) {
           <app-not-submitted-order
-            [order]="item"
-            [orderMode]="'single'"
+            [order]="view.order"
+            [orderMode]="view.mode"
             (submitted)="submitOrder($event)"
-            (removeDish)="removeDishFromOrder(item.orderId, $event)"
-            (addDish)="addDishToOrder(item.orderId)"
-            (updateQuantity)="updateDishQuantity(item.orderId, $event.itemId, $event.quantity)"
+            (saved)="saveOrder($event)"
+            (removeDish)="removeDishFromOrder(view.order.orderId, $event)"
+            (addDish)="addDishToOrder(view.order.orderId)"
+            (updateQuantity)="updateDishQuantity(view.order.orderId, $event.itemId, $event.quantity)"
           />
         }
       </div>

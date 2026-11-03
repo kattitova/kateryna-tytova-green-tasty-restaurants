@@ -10,13 +10,15 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { finalize } from 'rxjs';
+import { Observable, catchError, finalize, forkJoin, map, of } from 'rxjs';
 
 import { CartOrderMode } from '@app/models/cart/cart-order-mode.model';
 import { Order } from '@app/models/orders/order.model';
+import { Reservation } from '@app/models/reservations/reservation.model';
 import { PreOrdersService } from '@app/services/pre-orders/pre-orders.service';
 import { ReservationService } from '@app/services/reservation/reservation.service';
 import { ToastService } from '@app/services/toast/toast.service';
+import { toCartOrderMode } from '@app/shared/helpers/group-reservation.helpers';
 import { LoadingSpinnerComponent } from '@app/shared/custom-components/loading-spinner/loading-spinner.component';
 
 import { CancelOrderModalComponent } from './components/cancel-order-modal/cancel-order-modal.component';
@@ -64,9 +66,9 @@ export class CartComponent implements OnInit {
 
   readonly unsubmittedOrders = computed(() => this.orders().filter((order) => order.status === 0));
 
-  readonly unsubmittedOrderViews = computed<CartOrderView[]>(() => {
-    throw new Error('Not implemented');
-  });
+  readonly unsubmittedOrderViews = computed<CartOrderView[]>(() =>
+    this.unsubmittedOrders().map((order) => ({ order, mode: this.orderMode(order) }))
+  );
 
   readonly submittedOrder = computed(() => {
     const orderId = this.submitOrderId();
@@ -79,7 +81,7 @@ export class CartComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.loadOrders();
+    this.loadOrdersAndGuestCounts();
   }
 
   closeCart(): void {
@@ -160,7 +162,8 @@ export class CartComponent implements OnInit {
   submitOrder(orderId: string): void {
     const order = this.findOrder(orderId);
 
-    if (!order) {
+    // A group owner must not submit alone, and an unknown size must not fall back to Submit.
+    if (!order || this.orderMode(order) !== 'single') {
       return;
     }
 
@@ -178,8 +181,14 @@ export class CartComponent implements OnInit {
       });
   }
 
+  /** Dishes are already stored by each edit, so Save makes no API call. */
   saveOrder(orderId: string): void {
-    throw new Error('Not implemented');
+    if (!this.findOrder(orderId)) {
+      return;
+    }
+
+    this.toast.success('Your pre-order is saved.');
+    this.closeCart();
   }
 
   addDishToOrder(orderId: string): void {
@@ -259,26 +268,61 @@ export class CartComponent implements OnInit {
   }
 
   private orderMode(order: Order): CartOrderMode {
-    throw new Error('Not implemented');
+    return toCartOrderMode(this.reservationGuestCounts()?.get(order.reservationId));
   }
 
-  private loadOrders(): void {
+  /** First load: the orders and the guest counts. The spinner waits for both. */
+  private loadOrdersAndGuestCounts(): void {
     this.isLoadingOrders.set(true);
 
-    this.preOrdersService
-      .getPreOrders()
+    forkJoin({
+      orders: this.preOrders$(),
+      guestCounts: this.guestCounts$(),
+    })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.isLoadingOrders.set(false))
       )
-      .subscribe({
-        next: (orders) => {
-          this.orders.set(orders);
-        },
-        error: (error) => {
-          console.error('Error loading orders:', error);
-          this.orders.set([]);
-        },
+      .subscribe(({ orders, guestCounts }) => {
+        this.orders.set(orders);
+        this.reservationGuestCounts.set(guestCounts);
       });
+  }
+
+  /** Later reloads: the guest counts do not change while the cart is open. */
+  private loadOrders(): void {
+    this.isLoadingOrders.set(true);
+
+    this.preOrders$()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isLoadingOrders.set(false))
+      )
+      .subscribe((orders) => {
+        this.orders.set(orders);
+      });
+  }
+
+  private preOrders$(): Observable<Order[]> {
+    return this.preOrdersService.getPreOrders().pipe(
+      catchError((error: unknown) => {
+        console.error('Error loading orders:', error);
+        return of<Order[]>([]);
+      })
+    );
+  }
+
+  // On error the map stays null: every order gets mode 'unknown'. The interceptor shows the toast.
+  private guestCounts$(): Observable<ReadonlyMap<string, number> | null> {
+    return this.reservationService.getReservationsForUser$().pipe(
+      map(
+        (reservations: Reservation[]) =>
+          new Map(reservations.map((reservation) => [reservation.id, reservation.guestCount]))
+      ),
+      catchError((error: unknown) => {
+        console.error('Error loading reservations:', error);
+        return of(null);
+      })
+    );
   }
 }
