@@ -38,13 +38,11 @@ export class NotSubmittedOrderComponent {
     ),
   );
 
-  readonly ctaLabel = computed((): string => {
-    throw new Error('Not implemented');
-  });
+  readonly ctaLabel = computed(() =>
+    this.orderMode() === 'group' ? 'Save Pre-Order' : 'Submit Pre-Order',
+  );
 
-  readonly ctaDisabled = computed((): boolean => {
-    throw new Error('Not implemented');
-  });
+  readonly ctaDisabled = computed(() => this.orderMode() === 'unknown');
 
   incrementItemQuantity(itemId: string): void {
     const item = this.findOrderItem(itemId);
@@ -63,7 +61,16 @@ export class NotSubmittedOrderComponent {
   }
 
   onCtaClick(): void {
-    throw new Error('Not implemented');
+    switch (this.orderMode()) {
+      case 'single':
+        this.submit();
+        break;
+      case 'group':
+        this.saved.emit(this.order().orderId);
+        break;
+      case 'unknown':
+        break;
+    }
   }
 
   submit(): void {
