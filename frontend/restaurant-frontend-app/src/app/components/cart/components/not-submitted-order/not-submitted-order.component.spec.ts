@@ -122,6 +122,7 @@ describe('NotSubmittedOrderComponent', () => {
 
       expect(cta()).not.toBeNull();
       expect(cta()?.disabled).toBeTrue();
+      expect(cta()?.textContent?.trim()).toBe('Submit Pre-Order');
     });
 
     it('shows the unavailable message as a status', () => {
