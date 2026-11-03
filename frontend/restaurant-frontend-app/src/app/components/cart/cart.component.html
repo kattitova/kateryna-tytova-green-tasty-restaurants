@@ -20,82 +20,85 @@
 
       <button
         type="button"
-        class="icon-button icon-button--small cart-close"
+        class="icon-button cart-close"
         aria-label="Close cart"
         (click)="closeCart()"
       >
-        <img src="assets/svg/close.svg" alt="" aria-hidden="true" />
+        <img src="assets/svg/close.svg" alt="" aria-hidden="true" width="24" height="24" />
       </button>
     </div>
 
-    @if (isLoadingOrders()) {
-      <app-loading-spinner class="cart-loading" [message]="'Loading your orders...'" />
-    }
+    <div class="cart-body">
+      @if (isLoadingOrders()) {
+        <app-loading-spinner class="cart-loading" [message]="'Loading your orders...'" />
+      }
 
-    @if (!isLoadingOrders() && unsubmittedOrders().length > 0) {
-      <div class="orders-list">
-        <div class="list-header">
-          <h3>Not submitted pre-orders</h3>
+      @if (!isLoadingOrders() && unsubmittedOrders().length > 0) {
+        <div class="orders-list orders-list--unsubmitted">
+          <h4>My Pre-Order</h4>
 
-          <span class="body"> You have not submitted pre-orders </span>
-        </div>
-
-        @for (item of unsubmittedOrders(); track item.orderId) {
-          <app-not-submitted-order
-            [order]="item"
-            (submitted)="submitOrder($event)"
-            (removeDish)="removeDishFromOrder(item.orderId, $event)"
-            (addDish)="addDishToOrder(item.orderId)"
-            (updateQuantity)="updateDishQuantity(item.orderId, $event.itemId, $event.quantity)"
-          />
-        }
-      </div>
-    }
-
-    @if (!isLoadingOrders() && submittedOrders().length > 0) {
-      <div class="orders-list">
-        <div class="list-header">
-          <h3>Submitted pre-orders</h3>
-
-          <span class="body">
-            You can modify or cancel your pre-orders up to 30 minutes before your reserved table
-            time.
-          </span>
-        </div>
-
-        <div>
-          @for (item of submittedOrders(); track item.orderId) {
-            <app-submitted-order
-              [order]="item"
-              (canceled)="openCancelModal(item.orderId)"
-              (edited)="editOrder(item.orderId)"
+          @for (view of unsubmittedOrderViews(); track view.order.orderId) {
+            <app-not-submitted-order
+              [order]="view.order"
+              [orderMode]="view.mode"
+              (submitted)="submitOrder($event)"
+              (saved)="saveOrder($event)"
+              (removeDish)="removeDishFromOrder(view.order.orderId, $event)"
+              (addDish)="addDishToOrder(view.order.orderId)"
+              (updateQuantity)="
+                updateDishQuantity(view.order.orderId, $event.itemId, $event.quantity)
+              "
             />
           }
         </div>
-      </div>
-    }
+      }
 
-    @if (!isLoadingOrders() && orders().length === 0) {
-      <div class="empty-cart">
-        <img src="assets/img/empty-cart.png" alt="" aria-hidden="true" />
+      @if (!isLoadingOrders() && submittedOrders().length > 0) {
+        <div class="orders-list orders-list--submitted">
+          <div class="list-header">
+            <h3>Submitted pre-orders</h3>
 
-        <div class="empty-cart-content">
-          <div class="empty-cart-info">
-            <h3>Your cart is empty</h3>
-
-            <span class="body"> Looks like you haven’t added any dishes to your cart yet. </span>
+            <span class="body">
+              You can modify or cancel your pre-orders up to 30 minutes before your reserved table
+              time.
+            </span>
           </div>
 
-          <button
-            type="button"
-            class="button button--primary button--large"
-            (click)="goToReservations()"
-          >
-            Go To Reservations
-          </button>
+          <div>
+            @for (view of submittedOrderViews(); track view.order.orderId) {
+              <app-submitted-order
+                [order]="view.order"
+                [orderMode]="view.mode"
+                (canceled)="openCancelModal(view.order.orderId)"
+                (edited)="editOrder(view.order.orderId)"
+              />
+            }
+          </div>
         </div>
-      </div>
-    }
+      }
+
+      @if (!isLoadingOrders() && orders().length === 0) {
+        <div class="empty-cart">
+          <img src="assets/img/empty-cart.png" alt="" aria-hidden="true" />
+
+          <div class="empty-cart-content">
+            <div class="empty-cart-info">
+              <h3>Your cart is empty</h3>
+
+              <span class="body"> Looks like you haven’t added any dishes to your cart yet. </span>
+            </div>
+
+            <button
+              type="button"
+              class="button button--primary button--large"
+              (click)="goToReservations()"
+            >
+              Go To Reservations
+            </button>
+          </div>
+        </div>
+      }
+    </div>
   </div>
 </div>
 

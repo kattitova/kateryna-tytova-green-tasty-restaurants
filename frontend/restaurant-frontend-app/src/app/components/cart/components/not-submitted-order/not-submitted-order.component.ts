@@ -7,6 +7,7 @@ import {
   output,
 } from '@angular/core';
 
+import { CartOrderMode } from '@app/models/cart/cart-order-mode.model';
 import { Order } from '@app/models/orders/order.model';
 
 @Component({
@@ -19,8 +20,10 @@ import { Order } from '@app/models/orders/order.model';
 })
 export class NotSubmittedOrderComponent {
   readonly order = input.required<Order>();
+  readonly orderMode = input.required<CartOrderMode>();
 
   readonly submitted = output<string>();
+  readonly saved = output<string>();
   readonly addDish = output<void>();
   readonly removeDish = output<string>();
   readonly updateQuantity = output<{
@@ -35,6 +38,12 @@ export class NotSubmittedOrderComponent {
     ),
   );
 
+  readonly ctaLabel = computed(() =>
+    this.orderMode() === 'group' ? 'Save Pre-Order' : 'Submit Pre-Order',
+  );
+
+  readonly ctaDisabled = computed(() => this.orderMode() === 'unknown');
+
   incrementItemQuantity(itemId: string): void {
     const item = this.findOrderItem(itemId);
 
@@ -48,6 +57,19 @@ export class NotSubmittedOrderComponent {
 
     if (item && item.quantity > 1) {
       this.updateItemQuantity(itemId, item.quantity - 1);
+    }
+  }
+
+  onCtaClick(): void {
+    switch (this.orderMode()) {
+      case 'single':
+        this.submit();
+        break;
+      case 'group':
+        this.saved.emit(this.order().orderId);
+        break;
+      case 'unknown':
+        break;
     }
   }
 

@@ -1,68 +1,86 @@
 @use 'app/shared/styles/abstracts/colors' as color;
 
+$card-shadow: 0 0 5px rgba(218, 218, 218, 0.7);
+$image-shadow: 0 0 10px 4px rgba(218, 218, 218, 0.7);
+$cta-gradient: linear-gradient(-83.73deg, #0f7a37 0%, #0b5b29 98.29%);
+
+// M1: the host grows inside the cart body, so the footer can sit at the bottom.
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+}
+
 .not-submitted-order {
   display: flex;
   flex-direction: column;
+  flex: 1 0 auto;
   gap: 16px;
 }
 
-.content {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.order-caption {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+  color: color.$neutral-900;
 }
 
-.order {
+.order-items {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.order-item {
+.order-item-card {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.order-item-dish {
-  display: flex;
-  flex-direction: row;
-  padding: 24px;
   gap: 16px;
+  padding: 16px;
   border-radius: 8px;
-  box-shadow: 0 0 10px 4px rgba(194, 194, 194, 0.5);
+  background-color: color.$neutral-0;
+  box-shadow: $card-shadow;
 }
 
 .dish-image {
-  min-width: 96px;
+  flex: 0 0 96px;
+  width: 96px;
   height: 96px;
-  border-radius: 400px;
-  box-shadow: 0 0 10px 4px rgba(194, 194, 194, 0.5);
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: $image-shadow;
 }
 
 .container {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 16px;
-  border-radius: 8px;
-  width: 100%;
-}
-
-.details {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
+  min-width: 0;
 }
 
 .dish-name {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  // Keep the name clear of the absolute remove button.
+  padding-right: 40px;
+  color: color.$neutral-900;
+}
+
+.dish-title {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+}
+
+.caption {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
 }
 
 .quantity {
   display: flex;
-  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -71,35 +89,116 @@
 .quantity-buttons {
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
-
-.total {
-  display: flex;
-  justify-content: end;
-  align-items: center;
-  gap: 16px;
-}
-
-.body {
+.quantity-button {
+  padding: 4px 12px;
+  border: 1.4px solid color.$green-600;
+  border-radius: 8px;
+  background-color: color.$neutral-0;
+  color: color.$green-600;
+  font-family: inherit;
   font-size: 14px;
-  letter-spacing: 0;
-  font-weight: 300;
-  line-height: 24px;
-}
-
-.body-bold {
   font-weight: 500;
-  font-size: 14px;
   line-height: 24px;
-  letter-spacing: 0;
-  vertical-align: middle;
+  cursor: pointer;
+
+  &--decrease {
+    border-color: color.$neutral-200;
+    color: color.$neutral-400;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
 }
 
-.caption {
-  font-weight: 300;
+.quantity-value {
+  width: 16px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+  color: color.$neutral-900;
+}
+
+.item-price {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 32px;
+  color: color.$green-600;
+  text-align: right;
+}
+
+.remove-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.order-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: auto;
+  margin-left: -40px;
+  margin-right: -40px;
+  padding: 24px 40px;
+  border-top: 1px solid color.$neutral-100;
+  background: color.$neutral-0;
+
+  @media (max-width: 650px) {
+    margin-left: -16px;
+    margin-right: -16px;
+    padding: 24px 16px;
+  }
+}
+
+.grand-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  h4 {
+    margin: 0;
+    color: color.$neutral-900;
+  }
+}
+
+.grand-total-value {
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 40px;
+  color: color.$green-800;
+}
+
+.cta-unavailable {
+  margin: 0;
   font-size: 12px;
   line-height: 16px;
-  letter-spacing: 0;
-  vertical-align: middle;
+  color: color.$neutral-600;
+  text-align: center;
+}
+
+.cart-cta {
+  width: 100%;
+  height: 56px;
+  border: none;
+  border-radius: 10px;
+  background: $cta-gradient;
+  color: color.$neutral-0;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
