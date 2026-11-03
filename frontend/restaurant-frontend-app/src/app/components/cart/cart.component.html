@@ -65,11 +65,12 @@
           </div>
 
           <div>
-            @for (item of submittedOrders(); track item.orderId) {
+            @for (view of submittedOrderViews(); track view.order.orderId) {
               <app-submitted-order
-                [order]="item"
-                (canceled)="openCancelModal(item.orderId)"
-                (edited)="editOrder(item.orderId)"
+                [order]="view.order"
+                [orderMode]="view.mode"
+                (canceled)="openCancelModal(view.order.orderId)"
+                (edited)="editOrder(view.order.orderId)"
               />
             }
           </div>

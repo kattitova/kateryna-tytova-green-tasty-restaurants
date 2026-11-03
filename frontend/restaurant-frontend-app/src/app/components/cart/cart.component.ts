@@ -66,9 +66,9 @@ export class CartComponent implements OnInit {
 
   readonly unsubmittedOrders = computed(() => this.orders().filter((order) => order.status === 0));
 
-  readonly unsubmittedOrderViews = computed<CartOrderView[]>(() =>
-    this.unsubmittedOrders().map((order) => ({ order, mode: this.orderMode(order) }))
-  );
+  readonly unsubmittedOrderViews = computed(() => this.toOrderViews(this.unsubmittedOrders()));
+
+  readonly submittedOrderViews = computed(() => this.toOrderViews(this.submittedOrders()));
 
   readonly submittedOrder = computed(() => {
     const orderId = this.submitOrderId();
@@ -265,6 +265,10 @@ export class CartComponent implements OnInit {
     }
 
     return order;
+  }
+
+  private toOrderViews(orders: Order[]): CartOrderView[] {
+    return orders.map((order) => ({ order, mode: this.orderMode(order) }));
   }
 
   private orderMode(order: Order): CartOrderMode {

@@ -7,6 +7,7 @@ import {
   output,
 } from '@angular/core';
 
+import { CartOrderMode } from '@app/models/cart/cart-order-mode.model';
 import { Order } from '@app/models/orders/order.model';
 
 @Component({
@@ -19,6 +20,7 @@ import { Order } from '@app/models/orders/order.model';
 })
 export class SubmittedOrderComponent {
   readonly order = input.required<Order>();
+  readonly orderMode = input.required<CartOrderMode>();
 
   readonly canceled = output<void>();
   readonly edited = output<void>();
@@ -32,6 +34,10 @@ export class SubmittedOrderComponent {
         0,
       ),
   );
+
+  readonly canEdit = computed((): boolean => {
+    throw new Error('Not implemented');
+  });
 
   cancelOrder(): void {
     this.canceled.emit();
