@@ -57,13 +57,13 @@
         from
 
         <strong class="bold-text">
-          {{ reservation().startTime | date: 'shortTime' }}
+          {{ reservation().startTime | date: 'HH:mm' }}
         </strong>
 
         to
 
         <strong class="bold-text">
-          {{ reservation().endTime | date: 'shortTime' }}
+          {{ reservation().endTime | date: 'HH:mm' }}
         </strong>
 
         @if (tableNumber(); as table) {

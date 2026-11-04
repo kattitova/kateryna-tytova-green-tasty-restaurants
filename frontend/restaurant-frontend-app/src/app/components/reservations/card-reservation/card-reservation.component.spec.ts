@@ -87,6 +87,17 @@ describe('CardReservationComponent', () => {
     expect(emitted).toEqual(['res-1']);
   });
 
+  it('renders reservation time in 24-hour format on the card', () => {
+    const root = setReservation({});
+    const timeLine = root
+      .querySelector('img[src="assets/svg/clock-green.svg"]')
+      ?.parentElement?.textContent;
+
+    expect(timeLine).toBeTruthy();
+    expect(timeLine).toMatch(/\b\d{2}:\d{2}\s*–\s*\d{2}:\d{2}\b/);
+    expect(timeLine).not.toMatch(/\bAM\b|\bPM\b/i);
+  });
+
   describe('group bonus badge', () => {
     function preOrderWith(
       groupBonusTier: GroupBonusTier | null | undefined,

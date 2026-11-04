@@ -48,4 +48,12 @@ describe('ReservationConfirmedComponent', () => {
     expect(text).not.toContain(reservation.tableId);
     expect(text).toContain('has been successfully made.');
   });
+
+  it('renders reservation times in 24-hour format', () => {
+    const text = render(reservation);
+
+    expect(text).toContain('16:45');
+    expect(text).toContain('18:15');
+    expect(text).not.toMatch(/\bAM\b|\bPM\b/i);
+  });
 });
