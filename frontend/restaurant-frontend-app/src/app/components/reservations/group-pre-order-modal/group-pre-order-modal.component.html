@@ -64,7 +64,12 @@
                   <li class="seat">
                     @switch (seat.kind) {
                       @case ('owner') {
-                        <span class="ring" [class.ring--ordered]="seat.ordered" [class.ring--owner]="seat.ordered">
+                        <span
+                          class="ring"
+                          [class.ring--ordered]="seat.ordered"
+                          [class.ring--owner]="seat.ordered"
+                          [class.ring--empty]="!seat.ordered"
+                        >
                           {{ seat.initials }}
                         </span>
                         <span class="seat-label">You</span>
