@@ -156,9 +156,10 @@ syndicate build
 syndicate deploy --deploy_name dev
 ```
 
-For an incremental update instead of a full deploy, run the matching command for your shell.
+For an incremental update instead of a full deploy, build a new bundle first, then update. `syndicate update` uses the latest bundle. If that bundle is already deployed, the command stops with "Output file already exists". Do not use `--replace-output` to fix this: it deploys the old code again.
 
 ```
+syndicate build
 syndicate update
 ```
 
