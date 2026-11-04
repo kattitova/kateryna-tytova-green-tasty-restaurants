@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
+import { SKIP_ERROR_TOAST } from '@app/auth/skip-error-toast.context';
 import { API_BASE_URL } from '@app/shared/config/api-base-url.token';
 import { Order } from '@app/models/orders/order.model';
 import { DishListResponse } from '@app/models/dishes/dish-list-response.model';
@@ -13,8 +14,10 @@ export class PreOrdersService {
   private readonly baseUrl = inject(API_BASE_URL);
   private readonly http = inject(HttpClient);
 
-  getPreOrders() {
-    return this.http.get<Order[]>(`${this.baseUrl}/orders`);
+  getPreOrders(skipErrorToast = false) {
+    return this.http.get<Order[]>(`${this.baseUrl}/orders`, {
+      context: new HttpContext().set(SKIP_ERROR_TOAST, skipErrorToast),
+    });
   }
 
   getByReservationId(reservationId: string) {

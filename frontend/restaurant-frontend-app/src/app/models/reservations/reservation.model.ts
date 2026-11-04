@@ -4,6 +4,8 @@ import { Order } from '../orders/order.model';
 export interface Reservation {
   id: string;
   tableId: string;
+  /** Number of the table in its location. `null` or missing when the API could not load the table. */
+  tableNumber?: number | null;
   customerId: string;
   startTime: Date;
   endTime: Date;
@@ -29,6 +31,7 @@ export enum ReservationStatus {
 export interface ReservationCustomer {
   id: string;
   tableId: string;
+  tableNumber?: number | null;
   startTime: Date;
   endTime: Date;
   guestCount: number;

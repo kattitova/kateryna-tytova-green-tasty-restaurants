@@ -1,0 +1,27 @@
+<ul class="reservation-details" aria-label="Reservation details">
+  <li class="detail">
+    <img src="assets/svg/reservation-details/location.svg" alt="" aria-hidden="true" width="16" height="16" />
+    <span>{{ details().address }}</span>
+  </li>
+
+  @if (details().startTime; as startTime) {
+    <li class="detail">
+      <img src="assets/svg/reservation-details/calendar.svg" alt="" aria-hidden="true" width="16" height="16" />
+      <span>{{ startTime | date: 'MMM d, y' }}</span>
+    </li>
+  }
+
+  @if (hasTimeRange()) {
+    <li class="detail">
+      <img src="assets/svg/reservation-details/clock.svg" alt="" aria-hidden="true" width="16" height="16" />
+      <span>{{ details().startTime | date: 'HH:mm' }} - {{ details().endTime | date: 'HH:mm' }}</span>
+    </li>
+  }
+
+  @if (guestsLabel(); as guests) {
+    <li class="detail">
+      <img src="assets/svg/reservation-details/people.svg" alt="" aria-hidden="true" width="16" height="16" />
+      <span>{{ guests }}</span>
+    </li>
+  }
+</ul>

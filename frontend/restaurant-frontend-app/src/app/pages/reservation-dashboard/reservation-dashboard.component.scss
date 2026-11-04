@@ -38,6 +38,12 @@
   }
 }
 
+.reservations-loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
 .reservation-empty {
   display: flex;
   flex-direction: column;

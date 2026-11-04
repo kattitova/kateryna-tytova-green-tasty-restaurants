@@ -3,7 +3,8 @@ import { Router } from '@angular/router';
 import { Observable, Subject, of, throwError } from 'rxjs';
 
 import { Order } from '@app/models/orders/order.model';
-import { Reservation } from '@app/models/reservations/reservation.model';
+import { Reservation, ReservationStatus } from '@app/models/reservations/reservation.model';
+import { CartStateService } from '@app/services/cart/cart-state.service';
 import { PreOrdersService } from '@app/services/pre-orders/pre-orders.service';
 import { ReservationService } from '@app/services/reservation/reservation.service';
 import { ToastService } from '@app/services/toast/toast.service';
@@ -261,7 +262,7 @@ describe('CartComponent', () => {
 
       cta()?.click();
 
-      expect(toastMock.success).toHaveBeenCalledOnceWith('Your pre-order is saved.');
+      expect(toastMock.success).toHaveBeenCalledOnceWith('Your pre-order is saved.', 'Success');
       expect(closeSpy).toHaveBeenCalledTimes(1);
       expect(preOrdersServiceMock.submitPreOrderByReservationId).not.toHaveBeenCalled();
       expect(preOrdersServiceMock.editPreOrderByReservationId).not.toHaveBeenCalled();
@@ -302,6 +303,139 @@ describe('CartComponent', () => {
       component.submitOrder('order-1');
 
       expect(preOrdersServiceMock.submitPreOrderByReservationId).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('header cart indicator', () => {
+    it('reports dishes to the cart state after the cart loads', () => {
+      renderWith([unsubmittedOrder], of([reservation('res-1', 1)]));
+
+      expect(TestBed.inject(CartStateService).hasDishes()).toBeTrue();
+    });
+
+    it('reports an empty cart after the last dish is removed', () => {
+      preOrdersServiceMock.editPreOrderByReservationId.and.returnValue(of({}));
+      renderWith([unsubmittedOrder], of([reservation('res-1', 1)]));
+      preOrdersServiceMock.getPreOrders.and.returnValue(of([{ ...unsubmittedOrder, orderItems: [] }]));
+
+      component.removeDishFromOrder('order-1', 'dish-1');
+
+      expect(TestBed.inject(CartStateService).hasDishes()).toBeFalse();
+    });
+  });
+
+  describe('cancelled reservations', () => {
+    const cancelledReservation = (): Reservation =>
+      ({ ...reservation('res-1', 1), status: ReservationStatus.Cancelled }) as Reservation;
+
+    it('hides an unsubmitted order of a cancelled reservation and shows the empty cart', () => {
+      renderWith([unsubmittedOrder], of([cancelledReservation()]));
+
+      expect(host().querySelector('app-not-submitted-order')).toBeNull();
+      expect(host().querySelector('.empty-cart')).not.toBeNull();
+    });
+
+    [1, 3].forEach((status) => {
+      it(`hides a submitted order with status ${status} of a cancelled reservation`, () => {
+        renderWith([{ ...unsubmittedOrder, status }], of([cancelledReservation()]));
+
+        expect(host().querySelector('app-submitted-order')).toBeNull();
+        expect(host().querySelector('.empty-cart')).not.toBeNull();
+      });
+    });
+
+    it('keeps the order when the reservations load fails', () => {
+      renderWith(
+        [unsubmittedOrder],
+        throwError(() => new Error('reservations failed'))
+      );
+
+      expect(host().querySelector('app-not-submitted-order')).not.toBeNull();
+    });
+  });
+
+  describe('reservation details', () => {
+    it('shows the reservation details from the reservation and not the order ID', () => {
+      renderWith(
+        [unsubmittedOrder],
+        of([
+          {
+            ...reservation('res-1', 2),
+            locationAddress: '9 Abashidze Street',
+            startTime: new Date(2026, 10, 8, 16, 45),
+            endTime: new Date(2026, 10, 8, 18, 15),
+          } as Reservation,
+        ])
+      );
+
+      const details = host().querySelector('app-reservation-details')?.textContent ?? '';
+
+      expect(details).toContain('9 Abashidze Street');
+      expect(details).toContain('16:45 - 18:15');
+      expect(details).toContain('2 Guests');
+      expect(host().textContent).not.toContain('order-1');
+    });
+
+    it('falls back to the order address when the reservation is not loaded', () => {
+      renderWith(
+        [unsubmittedOrder],
+        throwError(() => new Error('reservations failed'))
+      );
+
+      expect(host().querySelector('app-reservation-details')?.textContent).toContain(
+        'Test address'
+      );
+    });
+  });
+
+  describe('add dish', () => {
+    const addDishButton = (): HTMLButtonElement | undefined =>
+      Array.from(host().querySelectorAll<HTMLButtonElement>('button')).find(
+        (button) => button.textContent?.trim() === 'Add dish'
+      );
+
+    it('closes the cart and opens the menu in pre-order mode for the reservation', () => {
+      renderWith(
+        [unsubmittedOrder],
+        of([
+          {
+            ...reservation('res-1', 1),
+            locationAddress: '9 Abashidze Street',
+            tableNumber: 3,
+            startTime: new Date(2026, 10, 8, 16, 45),
+            endTime: new Date(2026, 10, 8, 18, 15),
+          } as Reservation,
+        ])
+      );
+      const closeSpy = spyOn(component.closeCartEvent, 'emit');
+
+      addDishButton()?.click();
+
+      expect(closeSpy).toHaveBeenCalledTimes(1);
+      expect(routerMock.navigate).toHaveBeenCalledOnceWith(['/menu'], {
+        queryParams: {
+          preOrder: 'true',
+          reservationId: 'res-1',
+          reservationLabel: '9 Abashidze Street, Table 3, Sun Nov 08 2026, 16:45 - 18:15',
+        },
+      });
+    });
+
+    it('opens the menu in pre-order mode with the order address when the reservation is not loaded', () => {
+      renderWith(
+        [unsubmittedOrder],
+        throwError(() => new Error('reservations failed'))
+      );
+
+      addDishButton()?.click();
+
+      expect(routerMock.navigate).toHaveBeenCalledOnceWith(['/menu'], {
+        queryParams: {
+          preOrder: 'true',
+          reservationId: 'res-1',
+          reservationLabel: 'Test address',
+        },
+      });
     });
   });
 

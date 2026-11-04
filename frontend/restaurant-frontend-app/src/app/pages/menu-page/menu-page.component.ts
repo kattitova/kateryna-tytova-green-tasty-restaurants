@@ -10,6 +10,7 @@ import { DishType } from '@app/models/enums/dish-type.model';
 import { DishSortingLabels, DishTypeLabels } from '@app/shared/mappers/dish-enum.mapper';
 import { DishModalComponent } from '@app/components/dish-modal/dish-modal.component';
 import { PreOrdersService } from '@app/services/pre-orders/pre-orders.service';
+import { CartStateService } from '@app/services/cart/cart-state.service';
 import { ToastService } from '@app/services/toast/toast.service';
 
 @Component({
@@ -49,6 +50,7 @@ export class MenuPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly orderService = inject(PreOrdersService);
+  private readonly cartState = inject(CartStateService);
 
   ngOnInit(): void {
     this.updateDishSkeletonCount();
@@ -167,6 +169,7 @@ export class MenuPageComponent implements OnInit {
       .subscribe({
         next: () => {
           this.toast.success('Dish added to cart successfully!', 'Success');
+          this.cartState.refresh();
         },
         error: (err) => {
           this.toast.error((err as Error).message, 'Error');

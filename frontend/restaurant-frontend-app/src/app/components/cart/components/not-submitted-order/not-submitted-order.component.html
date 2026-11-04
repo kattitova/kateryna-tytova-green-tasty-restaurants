@@ -1,8 +1,5 @@
 <div class="not-submitted-order">
-  <span class="order-caption">
-    Pre-order #{{ order().orderId }} ({{ order().reservationAddress }},
-    {{ order().reservationTime }})
-  </span>
+  <app-reservation-details [details]="details()" />
 
   <div class="order-items">
     @for (item of order().orderItems; track item.dish.id) {

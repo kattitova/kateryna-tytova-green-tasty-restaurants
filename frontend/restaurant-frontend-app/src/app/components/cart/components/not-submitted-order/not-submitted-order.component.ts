@@ -9,11 +9,13 @@ import {
 
 import { CartOrderMode } from '@app/models/cart/cart-order-mode.model';
 import { Order } from '@app/models/orders/order.model';
+import { ReservationDetails } from '@app/models/reservations/reservation-details.model';
+import { ReservationDetailsComponent } from '@app/shared/custom-components/reservation-details/reservation-details.component';
 
 @Component({
   selector: 'app-not-submitted-order',
   standalone: true,
-  imports: [CurrencyPipe],
+  imports: [CurrencyPipe, ReservationDetailsComponent],
   templateUrl: './not-submitted-order.component.html',
   styleUrl: './not-submitted-order.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -21,6 +23,7 @@ import { Order } from '@app/models/orders/order.model';
 export class NotSubmittedOrderComponent {
   readonly order = input.required<Order>();
   readonly orderMode = input.required<CartOrderMode>();
+  readonly details = input.required<ReservationDetails>();
 
   readonly submitted = output<string>();
   readonly saved = output<string>();

@@ -46,7 +46,17 @@ describe('SubmittedOrderComponent', () => {
 
     fixture.componentRef.setInput('order', order);
     fixture.componentRef.setInput('orderMode', 'single');
+    fixture.componentRef.setInput('details', { address: 'Test Address', guestCount: 3 });
     fixture.detectChanges();
+  });
+
+  it('shows the reservation details block and never the order ID', () => {
+    const host = fixture.nativeElement as HTMLElement;
+    const details = host.querySelector('app-reservation-details');
+
+    expect(details?.textContent).toContain('Test Address');
+    expect(details?.textContent).toContain('3 Guests');
+    expect(host.textContent).not.toContain('order-1');
   });
 
   const setMode = (mode: CartOrderMode): void => {

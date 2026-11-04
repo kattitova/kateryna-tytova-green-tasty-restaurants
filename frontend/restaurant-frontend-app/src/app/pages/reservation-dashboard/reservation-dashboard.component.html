@@ -8,9 +8,9 @@
 </div>
 
 @if (!reservationsLoaded()) {
-  <p class="reservation-empty">
-    Please wait while we load your reservations.
-  </p>
+  <div class="reservations-loading">
+    <app-loading-spinner [message]="'Loading your reservations...'" />
+  </div>
 } @else if (reservations().length > 0) {
   <ul class="reservation-list">
     @for (reservation of reservations(); track reservation.id) {

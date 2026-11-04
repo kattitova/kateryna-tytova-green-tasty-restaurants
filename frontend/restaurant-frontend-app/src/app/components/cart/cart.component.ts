@@ -14,11 +14,19 @@ import { Observable, catchError, finalize, forkJoin, map, of } from 'rxjs';
 
 import { CartOrderMode } from '@app/models/cart/cart-order-mode.model';
 import { Order } from '@app/models/orders/order.model';
+import { ReservationDetails } from '@app/models/reservations/reservation-details.model';
 import { Reservation } from '@app/models/reservations/reservation.model';
+import { CartStateService } from '@app/services/cart/cart-state.service';
 import { PreOrdersService } from '@app/services/pre-orders/pre-orders.service';
 import { ReservationService } from '@app/services/reservation/reservation.service';
 import { ToastService } from '@app/services/toast/toast.service';
+import {
+  isOrderOfCancelledReservation,
+  SUBMITTED_ORDER_STATUSES,
+  UNSUBMITTED_ORDER_STATUS,
+} from '@app/shared/helpers/cart-orders';
 import { toCartOrderMode } from '@app/shared/helpers/group-reservation.helpers';
+import { buildPreOrderQueryParams } from '@app/shared/helpers/pre-order-navigation';
 import { LoadingSpinnerComponent } from '@app/shared/custom-components/loading-spinner/loading-spinner.component';
 
 import { CancelOrderModalComponent } from './components/cancel-order-modal/cancel-order-modal.component';
@@ -45,6 +53,7 @@ export class CartComponent implements OnInit {
   private readonly preOrdersService = inject(PreOrdersService);
   private readonly reservationService = inject(ReservationService);
   private readonly toast = inject(ToastService);
+  private readonly cartState = inject(CartStateService);
 
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -54,17 +63,24 @@ export class CartComponent implements OnInit {
   readonly orders = signal<Order[]>([]);
   readonly isLoadingOrders = signal(false);
 
-  /** Guest count per reservation ID. `null` means not loaded yet, or the load failed. */
-  readonly reservationGuestCounts = signal<ReadonlyMap<string, number> | null>(null);
+  /** The user's reservations by ID. `null` means not loaded yet, or the load failed. */
+  readonly reservationsById = signal<ReadonlyMap<string, Reservation> | null>(null);
 
   readonly cancelOrderId = signal<string | null>(null);
   readonly submitOrderId = signal<string | null>(null);
 
-  readonly submittedOrders = computed(() =>
-    this.orders().filter((order) => order.status === 1 || order.status === 3)
+  /** Orders without the ones of cancelled reservations. If the reservations did not load, all orders stay. */
+  readonly visibleOrders = computed(() =>
+    this.orders().filter((order) => !isOrderOfCancelledReservation(order, this.reservationsById()))
   );
 
-  readonly unsubmittedOrders = computed(() => this.orders().filter((order) => order.status === 0));
+  readonly submittedOrders = computed(() =>
+    this.visibleOrders().filter((order) => SUBMITTED_ORDER_STATUSES.includes(order.status))
+  );
+
+  readonly unsubmittedOrders = computed(() =>
+    this.visibleOrders().filter((order) => order.status === UNSUBMITTED_ORDER_STATUS)
+  );
 
   readonly unsubmittedOrderViews = computed(() => this.toOrderViews(this.unsubmittedOrders()));
 
@@ -188,13 +204,24 @@ export class CartComponent implements OnInit {
       return;
     }
 
-    this.toast.success('Your pre-order is saved.');
+    this.toast.success('Your pre-order is saved.', 'Success');
     this.closeCart();
   }
 
   addDishToOrder(orderId: string): void {
-    console.log(`Adding a dish to order ${orderId}`);
-    void this.router.navigate(['/menu']);
+    const order = this.findOrder(orderId);
+
+    if (!order) {
+      return;
+    }
+
+    const reservation = this.reservationsById()?.get(order.reservationId);
+    const queryParams = buildPreOrderQueryParams(
+      reservation ?? { id: order.reservationId, locationAddress: order.reservationAddress }
+    );
+
+    this.closeCart();
+    void this.router.navigate(['/menu'], { queryParams });
   }
 
   updateDishQuantity(orderId: string, itemId: string, quantity: number): void {
@@ -269,11 +296,31 @@ export class CartComponent implements OnInit {
   }
 
   private toOrderViews(orders: Order[]): CartOrderView[] {
-    return orders.map((order) => ({ order, mode: this.orderMode(order) }));
+    return orders.map((order) => ({
+      order,
+      mode: this.orderMode(order),
+      details: this.orderDetails(order),
+    }));
   }
 
   private orderMode(order: Order): CartOrderMode {
-    return toCartOrderMode(this.reservationGuestCounts()?.get(order.reservationId));
+    return toCartOrderMode(this.reservationsById()?.get(order.reservationId)?.guestCount);
+  }
+
+  /** Details come from the reservation. Without it, only the address from the order is known. */
+  private orderDetails(order: Order): ReservationDetails {
+    const reservation = this.reservationsById()?.get(order.reservationId);
+
+    if (!reservation) {
+      return { address: order.reservationAddress };
+    }
+
+    return {
+      address: reservation.locationAddress,
+      startTime: reservation.startTime,
+      endTime: reservation.endTime,
+      guestCount: reservation.guestCount,
+    };
   }
 
   /** First load: the orders and the guest counts. The spinner waits for both. */
@@ -282,19 +329,20 @@ export class CartComponent implements OnInit {
 
     forkJoin({
       orders: this.preOrders$(),
-      guestCounts: this.guestCounts$(),
+      reservations: this.reservationsById$(),
     })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.isLoadingOrders.set(false))
       )
-      .subscribe(({ orders, guestCounts }) => {
+      .subscribe(({ orders, reservations }) => {
         this.orders.set(orders);
-        this.reservationGuestCounts.set(guestCounts);
+        this.reservationsById.set(reservations);
+        this.cartState.update(orders, reservations);
       });
   }
 
-  /** Later reloads: the guest counts do not change while the cart is open. */
+  /** Later reloads: the reservations do not change while the cart is open. */
   private loadOrders(): void {
     this.isLoadingOrders.set(true);
 
@@ -305,6 +353,7 @@ export class CartComponent implements OnInit {
       )
       .subscribe((orders) => {
         this.orders.set(orders);
+        this.cartState.update(orders, this.reservationsById());
       });
   }
 
@@ -318,11 +367,11 @@ export class CartComponent implements OnInit {
   }
 
   // On error the map stays null: every order gets mode 'unknown'. The interceptor shows the toast.
-  private guestCounts$(): Observable<ReadonlyMap<string, number> | null> {
+  private reservationsById$(): Observable<ReadonlyMap<string, Reservation> | null> {
     return this.reservationService.getReservationsForUser$().pipe(
       map(
         (reservations: Reservation[]) =>
-          new Map(reservations.map((reservation) => [reservation.id, reservation.guestCount]))
+          new Map(reservations.map((reservation) => [reservation.id, reservation]))
       ),
       catchError((error: unknown) => {
         console.error('Error loading reservations:', error);

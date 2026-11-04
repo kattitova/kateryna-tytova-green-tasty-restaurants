@@ -66,11 +66,13 @@
           {{ reservation().endTime | date: 'shortTime' }}
         </strong>
 
-        at
+        @if (tableNumber(); as table) {
+          at
 
-        <strong class="bold-text">
-          Table {{ reservation().tableId }}
-        </strong>
+          <strong class="bold-text">
+            Table {{ table }}
+          </strong>
+        }
 
         has been successfully made.
       </p>

@@ -34,11 +34,13 @@ import {
 import { Table } from '@app/models/tables/table.model';
 import { TimeRange } from '@app/models/tables/time-range.model';
 import { LocationsService } from '@app/services/locations/locations.service';
+import { CartStateService } from '@app/services/cart/cart-state.service';
 import { PreOrdersService } from '@app/services/pre-orders/pre-orders.service';
 import { ReservationService } from '@app/services/reservation/reservation.service';
 import { TableService } from '@app/services/table/table.service';
 import { Roles } from '@app/shared/constants/roles';
 import { HeaderComponent } from '@app/shared/custom-components/header/header.component';
+import { LoadingSpinnerComponent } from '@app/shared/custom-components/loading-spinner/loading-spinner.component';
 import {
   formatTime,
   revertFormatDate,
@@ -59,6 +61,7 @@ interface ReservationStatusView {
     MakeReservationComponent,
     ReservationConfirmedComponent,
     FeedbackWindowComponent,
+    LoadingSpinnerComponent,
   ],
   templateUrl: './reservation-dashboard.component.html',
   styleUrl: './reservation-dashboard.component.scss',
@@ -74,6 +77,7 @@ export class ReservationDashboardComponent implements OnInit {
   private readonly tableService = inject(TableService);
   private readonly locationsService = inject(LocationsService);
   private readonly ordersService = inject(PreOrdersService);
+  private readonly cartState = inject(CartStateService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -127,6 +131,7 @@ export class ReservationDashboardComponent implements OnInit {
       return {
         id: reservation.id,
         tableId: reservation.tableId,
+        tableNumber: reservation.tableNumber,
         startTime: reservation.startTime,
         endTime: reservation.endTime,
         guestCount: reservation.guestCount,
@@ -188,6 +193,9 @@ export class ReservationDashboardComponent implements OnInit {
             );
             return;
           }
+
+          // The backend cancels the pre-order too, so the header cart indicator can change.
+          this.cartState.refresh();
 
           this.reservations.update((reservations) =>
             reservations.map((reservation) =>

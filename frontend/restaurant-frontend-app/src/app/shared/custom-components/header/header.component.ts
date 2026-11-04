@@ -9,6 +9,7 @@ import { NotificationsService } from '@app/services/notifications/notifications.
 import { Notification } from '@app/models/notifications/notification.model';
 import { CartComponent } from '@app/components/cart/cart.component';
 import { GuestPreorderStore } from '@app/pages/guest-pre-order-page/state/guest-preorder.store';
+import { CartStateService } from '@app/services/cart/cart-state.service';
 
 @Component({
   selector: 'app-header',
@@ -49,6 +50,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
   private readonly notificationsService = inject(NotificationsService);
   private readonly router = inject(Router);
   private readonly guestPreorderStore = inject(GuestPreorderStore);
+  private readonly cartState = inject(CartStateService);
+
+  /** True when the customer's cart has dishes. Shows the green dot on the cart icon. */
+  readonly cartHasDishes = this.cartState.hasDishes;
 
   get isGuestPreorderRoute(): boolean {
     return this.router.url.startsWith('/join/');
@@ -62,6 +67,15 @@ export class HeaderComponent implements OnInit, OnDestroy {
     //MIGRATION: keep same behavior as previous user$.subscribe in ngOnInit
     effect(() => {
       const u = this.user();
+
+      // Load also on the guest pre-order route: the effect does not run again on navigation,
+      // so a skipped load there would leave the indicator off on the next pages.
+      if (u?.role === Roles.CUSTOMER) {
+        this.cartState.ensureLoaded(u.id);
+      } else {
+        this.cartState.clear();
+      }
+
       if (u?.role === Roles.WAITER) {
         this.startNotificationsPolling();
       } else {

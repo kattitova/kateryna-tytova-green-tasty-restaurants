@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   input,
   output,
   signal,
@@ -36,6 +37,9 @@ export class ReservationConfirmedComponent {
   readonly cancelReservation = output<void>();
 
   readonly isFading = signal(false);
+
+  /** Table numbers start at 1, so a falsy value means "unknown". Never show the table ID instead. */
+  readonly tableNumber = computed(() => this.reservation().tableNumber || null);
 
   protected readonly ReservationStatus = ReservationStatus;
 

@@ -59,6 +59,7 @@ describe('NotSubmittedOrderComponent', () => {
 
     fixture.componentRef.setInput('order', orderWithQuantity(2));
     fixture.componentRef.setInput('orderMode', 'single');
+    fixture.componentRef.setInput('details', { address: 'Test address' });
     fixture.detectChanges();
   });
 
@@ -199,7 +200,14 @@ describe('NotSubmittedOrderComponent', () => {
     });
   });
 
-  it('shows the reservation address in the caption', () => {
-    expect(host().textContent).toContain('Pre-order #order-1 (Test address');
+  it('shows the reservation details block and never the order ID', () => {
+    fixture.componentRef.setInput('details', { address: 'Test address', guestCount: 2 });
+    fixture.detectChanges();
+
+    const details = host().querySelector('app-reservation-details');
+
+    expect(details?.textContent).toContain('Test address');
+    expect(details?.textContent).toContain('2 Guests');
+    expect(host().textContent).not.toContain('order-1');
   });
 });

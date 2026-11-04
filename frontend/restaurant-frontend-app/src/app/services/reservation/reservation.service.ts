@@ -78,9 +78,11 @@ export class ReservationService {
     return this.http.delete<CancelReservationResponse>(url, { body: { id: reservationId } });
   }
 
-  getReservationsForUser$(): Observable<Reservation[]> {
+  getReservationsForUser$(skipErrorToast = false): Observable<Reservation[]> {
     const url = `${this.baseUrl}/reservations`;
-    return this.http.get<Reservation[]>(url);
+    return this.http.get<Reservation[]>(url, {
+      context: new HttpContext().set(SKIP_ERROR_TOAST, skipErrorToast),
+    });
   }
 
   getReservationFeedback(

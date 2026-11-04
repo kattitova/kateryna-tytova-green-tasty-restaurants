@@ -273,6 +273,23 @@
   transform: scale(1.1);
 }
 
+.cart-icon-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+// Green dot: the cart has dishes.
+.cart-indicator {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: color.$green-600;
+  box-shadow: 0 0 0 2px color.$neutral-0;
+}
+
 .notification-badge {
   position: absolute;
   top: -5px;
