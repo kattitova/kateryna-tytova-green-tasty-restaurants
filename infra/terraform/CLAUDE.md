@@ -37,4 +37,4 @@ Details are in `.claude/rules/terraform.md`. Key points:
 
 ## Known debt
 
-- `variables.tf` and `backend.tf` contain a real account ID as a default and as the state bucket name. The README tells each user to replace them. Do not add more account-specific defaults.
+- `variables.tf` and `backend.tf` contain a real account ID as a default and as the state bucket name. `README_HOMEWORK.md` tells each user to replace them. Do not add more account-specific defaults.
