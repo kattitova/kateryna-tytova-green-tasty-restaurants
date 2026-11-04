@@ -32,7 +32,7 @@
   background-color: color.$neutral-100;
   border: 1px solid color.$shadow;
   border-radius: 1.5rem;
-  width: 25%;
+  width: auto;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -80,5 +80,7 @@
 .confirmed-buttons{
   display: flex;
   margin-top: 20px;
-  justify-content: space-between;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
 }
