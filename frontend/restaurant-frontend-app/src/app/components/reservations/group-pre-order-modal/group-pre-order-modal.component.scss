@@ -425,3 +425,32 @@
 .submit {
   min-width: 268px;
 }
+
+.copy {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: color.$green-600;
+  background: color.$neutral-0;
+  border: 1.4px solid color.$green-600;
+  border-radius: 8px;
+  cursor: pointer;
+
+  img {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.link--danger {
+  color: color.$red-400;
+}
+
+.dish-list-action {
+  justify-content: flex-end;
+}

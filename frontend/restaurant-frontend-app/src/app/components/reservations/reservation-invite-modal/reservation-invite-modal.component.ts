@@ -16,6 +16,7 @@ import { Reservation } from '@app/models/reservations/reservation.model';
 import { GuestInviteService } from '@app/services/reservation/guest-invite.service';
 import { ToastService } from '@app/services/toast/toast.service';
 import { ModalComponent } from '@app/shared/custom-components/modal/modal.component';
+import { buildInviteLink } from '@app/shared/helpers/invite-link';
 import { buildPreOrderQueryParams } from '@app/shared/helpers/pre-order-navigation';
 
 const MIN_GUESTS_FOR_INVITE = 2;
@@ -50,7 +51,7 @@ export class ReservationInviteModalComponent implements OnInit {
 
   readonly inviteLink = computed(() => {
     const token = this.inviteToken();
-    return token ? `${window.location.origin}/join/${token}` : null;
+    return token ? buildInviteLink(token) : null;
   });
 
   readonly invitePlaceholder = computed(() => {

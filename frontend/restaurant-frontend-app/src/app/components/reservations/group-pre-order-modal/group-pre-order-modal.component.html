@@ -42,6 +42,16 @@
               <span class="muted" data-testid="gpo-ordered-summary">
                 &middot; {{ v.orderedCount }} of {{ v.seatCount }} ordered
               </span>
+
+              @if (v.isOpen) {
+                <button type="button" class="copy" [class.copy--done]="linkCopied()" (click)="copyLink()">
+                  @if (linkCopied()) {
+                    <img src="assets/svg/check-circle.svg" alt="" aria-hidden="true" />Link copied
+                  } @else {
+                    Copy pre-order link
+                  }
+                </button>
+              }
             </div>
 
             <div class="seats-wrapper">
@@ -105,7 +115,9 @@
                 />
                 <div class="bonus-text">
                   <p class="bonus-heading">{{ box.heading }}</p>
-                  <p class="bonus-sub">{{ box.subLine }}</p>
+                  @if (box.subLine) {
+                    <p class="bonus-sub">{{ box.subLine }}</p>
+                  }
                   @if (box.progress !== null) {
                     <div
                       class="progress"
@@ -210,6 +222,13 @@
                         <span>{{ item.dish.price * item.quantity | currency }}</span>
                       </li>
                     }
+                    @if (v.isOpen) {
+                      <li class="dish-list-action">
+                        <button type="button" class="link link--danger" (click)="askRemoveGuest(guest.id)">
+                          Remove {{ guest.name }}
+                        </button>
+                      </li>
+                    }
                   </ul>
                 }
               </section>
@@ -236,12 +255,29 @@
           <span class="grand-total" data-testid="gpo-grand-total">{{ v.finalTotal | currency }}</span>
 
           @if (!v.isSubmitted) {
-            <button type="button" class="button button--primary button--extra-large submit" [disabled]="!v.canSubmit">
+            <button
+              type="button"
+              class="button button--primary button--extra-large submit"
+              [disabled]="!v.canSubmit || submitting()"
+              (click)="submit()"
+            >
               Submit Pre-Order
             </button>
           }
         </footer>
       }
     }
+  }
+
+  @if (dialogView(); as dlg) {
+    <app-confirm-dialog
+      [title]="dlg.title"
+      [message]="dlg.message"
+      [cancelLabel]="dlg.cancelLabel"
+      [confirmLabel]="dlg.confirmLabel"
+      [confirmVariant]="dlg.variant"
+      (confirmed)="dialog()?.kind === 'remove' ? confirmRemove() : confirmSubmit()"
+      (cancelled)="keep()"
+    />
   }
 </app-modal>

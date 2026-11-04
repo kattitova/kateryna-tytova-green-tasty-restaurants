@@ -1,8 +1,10 @@
-import { CurrencyPipe, DatePipe, formatDate } from '@angular/common';
+import { CurrencyPipe, DatePipe, formatCurrency, formatDate } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  LOCALE_ID,
+  NgZone,
   ElementRef,
   OnInit,
   computed,
@@ -13,19 +15,33 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { forkJoin, switchMap, tap } from 'rxjs';
+import { forkJoin, from, switchMap, tap, timer } from 'rxjs';
 
 import { GroupPreOrderView } from '@app/models/group-orders/group-pre-order-view.model';
 import { GroupSessionsResponse } from '@app/models/group-orders/group-sessions-response.model';
 import { Participant } from '@app/models/group-orders/participant.model';
 import { ReservationCustomer } from '@app/models/reservations/reservation.model';
 import { GroupOrdersService } from '@app/services/group-orders/group-orders.service';
+import { GuestInviteService } from '@app/services/reservation/guest-invite.service';
+import { ToastService } from '@app/services/toast/toast.service';
 import { LoadingSpinnerComponent } from '@app/shared/custom-components/loading-spinner/loading-spinner.component';
 import { ModalComponent } from '@app/shared/custom-components/modal/modal.component';
 import { buildGroupPreOrderView, formatTimeLeft } from '@app/shared/helpers/group-pre-order.helpers';
+import { buildInviteLink } from '@app/shared/helpers/invite-link';
+import { ConfirmDialogComponent } from '@app/shared/custom-components/confirm-dialog/confirm-dialog.component';
 
 type LoadState = 'loading' | 'error' | 'content';
 type BonusTone = 'progress' | 'success' | 'muted';
+
+type DialogState = { kind: 'remove'; participantId: string; name: string } | { kind: 'submit' };
+
+interface DialogView {
+  title: string;
+  message: string;
+  cancelLabel: string;
+  confirmLabel: string;
+  variant: 'danger' | 'primary';
+}
 
 interface BonusBox {
   tone: BonusTone;
@@ -36,6 +52,7 @@ interface BonusBox {
 }
 
 const MINUS = '−';
+const LINK_COPIED_MS = 3000;
 const SEAT_SCROLL_STEP_PX = 240;
 /** The seats row shows about 7 seats in 800 px. More seats need the arrows. */
 const SEATS_WITHOUT_SCROLL = 7;
@@ -43,7 +60,7 @@ const SEATS_WITHOUT_SCROLL = 7;
 @Component({
   selector: 'app-group-pre-order-modal',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, LoadingSpinnerComponent, ModalComponent],
+  imports: [ConfirmDialogComponent, CurrencyPipe, DatePipe, LoadingSpinnerComponent, ModalComponent],
   templateUrl: './group-pre-order-modal.component.html',
   styleUrl: './group-pre-order-modal.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -51,6 +68,10 @@ const SEATS_WITHOUT_SCROLL = 7;
 export class GroupPreOrderModalComponent implements OnInit {
   private readonly groupOrders = inject(GroupOrdersService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly locale = inject(LOCALE_ID);
+  private readonly ngZone = inject(NgZone);
+  private readonly guestInvite = inject(GuestInviteService);
+  private readonly toast = inject(ToastService);
 
   readonly reservation = input.required<ReservationCustomer>();
   readonly ownerName = input('');
@@ -63,6 +84,30 @@ export class GroupPreOrderModalComponent implements OnInit {
   protected readonly expandedGuestIds = signal<ReadonlySet<string>>(new Set());
   /** Set to true by the actions of later steps (remove, submit, edit). */
   protected readonly changed = signal(false);
+
+  protected readonly dialog = signal<DialogState | null>(null);
+  protected readonly linkCopied = signal(false);
+  protected readonly submitting = signal(false);
+
+  protected readonly dialogView = computed<DialogView | null>(() => {
+    const dialog = this.dialog();
+    const view = this.view();
+    if (!dialog || !view) {
+      return null;
+    }
+
+    if (dialog.kind === 'remove') {
+      return {
+        title: `Remove ${dialog.name} from the table?`,
+        message: `${dialog.name}'s pre-order will be deleted and the seat becomes free.`,
+        cancelLabel: 'Keep',
+        confirmLabel: `Remove ${dialog.name}`,
+        variant: 'danger',
+      };
+    }
+
+    return this.buildSubmitDialog(view);
+  });
 
   private readonly seatsTrack = viewChild<ElementRef<HTMLElement>>('seatsTrack');
   private groupId: string | null = null;
@@ -102,7 +147,76 @@ export class GroupPreOrderModalComponent implements OnInit {
     this.fetch(this.groupId);
   }
 
+  protected copyLink(): void {
+    this.guestInvite
+      .getInviteToken$(this.reservation().id)
+      .pipe(
+        switchMap(({ token }) => from(navigator.clipboard.writeText(buildInviteLink(token)))),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => this.showLinkCopied(),
+        error: () => this.toast.error('Could not copy the link. Please try again.'),
+      });
+  }
+
+  protected askRemoveGuest(participantId: string): void {
+    const guest = this.guests().find((item) => item.id === participantId);
+    if (guest) {
+      this.dialog.set({ kind: 'remove', participantId, name: guest.name });
+    }
+  }
+
+  protected confirmRemove(): void {
+    const dialog = this.dialog();
+    if (dialog?.kind !== 'remove' || this.groupId === null) {
+      return;
+    }
+
+    this.dialog.set(null);
+    this.groupOrders
+      .removeGuest$(this.groupId, dialog.participantId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.changed.set(true);
+        this.reload();
+      });
+  }
+
+  protected keep(): void {
+    this.dialog.set(null);
+  }
+
+  protected submit(): void {
+    const view = this.view();
+    if (!view?.canSubmit || this.submitting()) {
+      return;
+    }
+
+    if (view.remainingCount === 0) {
+      this.sendSubmit();
+      return;
+    }
+
+    this.dialog.set({ kind: 'submit' });
+  }
+
+  protected confirmSubmit(): void {
+    this.dialog.set(null);
+    this.sendSubmit();
+  }
+
+  protected waitForGuests(): void {
+    this.dialog.set(null);
+  }
+
+  /** Escape and the close button close only the open dialog first. */
   protected onClose(): void {
+    if (this.dialog()) {
+      this.dialog.set(null);
+      return;
+    }
+
     this.closed.emit({ changed: this.changed() });
   }
 
@@ -134,6 +248,57 @@ export class GroupPreOrderModalComponent implements OnInit {
 
   protected pluralPreOrders(count: number): string {
     return count === 1 ? 'pre-order' : 'pre-orders';
+  }
+
+  private showLinkCopied(): void {
+    this.linkCopied.set(true);
+    // Outside the Angular zone: a 3 s timer in the zone would keep the app unstable for 3 s.
+    this.ngZone.runOutsideAngular(() => {
+      timer(LINK_COPIED_MS)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => this.linkCopied.set(false));
+    });
+  }
+
+  private sendSubmit(): void {
+    if (this.groupId === null) {
+      return;
+    }
+
+    this.submitting.set(true);
+    this.groupOrders
+      .submit$(this.groupId, this.reservation().id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.submitting.set(false);
+          this.changed.set(true);
+          this.reload();
+        },
+        error: () => this.submitting.set(false),
+      });
+  }
+
+  private buildSubmitDialog(view: GroupPreOrderView): DialogView {
+    const remaining = view.remainingCount;
+    const { bonus } = view;
+    let clause = '';
+    if (bonus.state === 'InProgress') {
+      clause =
+        bonus.tier === 'FreeDessert'
+          ? " and the free dessert bonus won't apply"
+          : " and the 10% group discount won't apply";
+    }
+
+    return {
+      title: remaining === 1 ? "1 seat hasn't pre-ordered yet" : `${remaining} seats haven't pre-ordered yet`,
+      message:
+        `If you confirm now, the restaurant will receive ${view.orderedCount} ${this.pluralPreOrders(view.orderedCount)}` +
+        `${clause}. After confirmation, guests can't change their orders.`,
+      cancelLabel: 'Wait for guests',
+      confirmLabel: 'Confirm anyway',
+      variant: 'primary',
+    };
   }
 
   private load(): void {
@@ -215,11 +380,11 @@ export class GroupPreOrderModalComponent implements OnInit {
       const n = view.remainingCount;
       const reward = isDiscount ? '10% off for the whole table' : 'free dessert for the table';
       const left = bonus.deadline ? formatTimeLeft(new Date(bonus.deadline), new Date()) : null;
-      const until = `Until ${this.formatDeadline(bonus.deadline)}`;
+      const until = bonus.deadline ? `Until ${this.formatDeadline(bonus.deadline)}` : '';
       return {
         tone: 'progress',
         heading: `${n} more ${this.pluralPreOrders(n)} — ${reward}`,
-        subLine: left ? `${until} · ${left}` : until,
+        subLine: left && until ? `${until} · ${left}` : until,
         progress: view.seatCount > 0 ? Math.min(100, (view.orderedCount / view.seatCount) * 100) : 0,
       };
     }
@@ -237,7 +402,7 @@ export class GroupPreOrderModalComponent implements OnInit {
 
   private buildFooterBonusLine(view: GroupPreOrderView): string {
     const { bonus } = view;
-    const money = (value: number) => `$${value.toFixed(2)}`;
+    const money = (value: number) => formatCurrency(value, this.locale, '$');
 
     if (bonus.state === 'InProgress') {
       return bonus.tier === 'FreeDessert'
@@ -251,6 +416,6 @@ export class GroupPreOrderModalComponent implements OnInit {
         : `Total before discount ${money(view.grandTotal)} · Group discount ${MINUS}10% applied (${MINUS}${money(view.discountAmount)})`;
     }
 
-    return `Group discount — deadline passed`;
+    return 'Group discount — deadline passed';
   }
 }

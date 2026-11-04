@@ -1,0 +1,44 @@
+@use 'app/shared/styles/abstracts/colors' as color;
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: inherit;
+}
+
+.dialog {
+  box-sizing: border-box;
+  max-width: 420px;
+  padding: 24px;
+  background: color.$neutral-0;
+  border-radius: 16px;
+}
+
+.dialog-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.dialog-message {
+  margin: 0 0 24px;
+  color: color.$neutral-600;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: flex-end;
+}
+
+// The shared button styles have no danger variant.
+.button--danger {
+  color: color.$neutral-0;
+  background: color.$red-400;
+  border-color: color.$red-400;
+}

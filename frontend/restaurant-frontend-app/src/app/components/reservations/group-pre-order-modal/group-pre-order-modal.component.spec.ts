@@ -10,6 +10,7 @@ import { GroupReservationStatus, GroupStatusResponse } from '@app/models/group-o
 import { Participant } from '@app/models/group-orders/participant.model';
 import { ReservationCustomer, ReservationStatusCustomer } from '@app/models/reservations/reservation.model';
 import { GroupOrdersService } from '@app/services/group-orders/group-orders.service';
+import { GuestInviteService } from '@app/services/reservation/guest-invite.service';
 import { API_BASE_URL } from '@app/shared/config/api-base-url.token';
 import { GroupPreOrderModalComponent } from './group-pre-order-modal.component';
 
@@ -44,13 +45,15 @@ function status(state: GroupReservationStatus): GroupStatusResponse {
 describe('GroupPreOrderModalComponent', () => {
   let fixture: ComponentFixture<GroupPreOrderModalComponent>;
   let groupOrders: jasmine.SpyObj<GroupOrdersService>;
+  let guestInvite: jasmine.SpyObj<GuestInviteService>;
 
   async function render(
     ownerGroupId$: Observable<string>,
     statusResponse: GroupStatusResponse = status('Open'),
+    sessions: GroupSessionsResponse = SESSIONS,
   ): Promise<HTMLElement> {
     groupOrders.getOwnerGroupId$.and.returnValue(ownerGroupId$);
-    groupOrders.getSessions$.and.returnValue(of(SESSIONS));
+    groupOrders.getSessions$.and.returnValue(of(sessions));
     groupOrders.getStatus$.and.returnValue(of(statusResponse));
 
     fixture = TestBed.createComponent(GroupPreOrderModalComponent);
@@ -71,6 +74,8 @@ describe('GroupPreOrderModalComponent', () => {
       'submit$',
     ]);
 
+    guestInvite = jasmine.createSpyObj<GuestInviteService>('GuestInviteService', ['getInviteToken$']);
+
     TestBed.configureTestingModule({
       imports: [GroupPreOrderModalComponent],
       providers: [
@@ -79,6 +84,7 @@ describe('GroupPreOrderModalComponent', () => {
         provideHttpClientTesting(),
         { provide: API_BASE_URL, useValue: 'https://test.api' },
         { provide: GroupOrdersService, useValue: groupOrders },
+        { provide: GuestInviteService, useValue: guestInvite },
       ],
     });
   });
@@ -107,5 +113,103 @@ describe('GroupPreOrderModalComponent', () => {
     expect(root.textContent).toContain('Sent to Restaurant');
     const buttonTexts = Array.from(root.querySelectorAll('button')).map((b) => b.textContent?.trim());
     expect(buttonTexts).not.toContain('Submit Pre-Order');
+  });
+
+  describe('actions', () => {
+    function buttons(scope: ParentNode): HTMLButtonElement[] {
+      return Array.from(scope.querySelectorAll('button'));
+    }
+
+    async function click(text: string, scope: ParentNode = fixture.nativeElement): Promise<void> {
+      const button = buttons(scope).find((b) => b.textContent?.trim() === text);
+      expect(button).withContext(`button "${text}"`).toBeDefined();
+      button!.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    }
+
+    function dialog(root: HTMLElement): HTMLElement | null {
+      return root.querySelector('app-confirm-dialog');
+    }
+
+    async function openRemoveDialog(root: HTMLElement): Promise<void> {
+      const anna = buttons(root).find((b) => b.getAttribute('aria-expanded') !== null && b.textContent?.includes('Anna'));
+      anna!.click();
+      fixture.detectChanges();
+      await click('Remove Anna');
+    }
+
+    it('copies the invite link and shows "Link copied"', async () => {
+      const writeText = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
+      guestInvite.getInviteToken$.and.returnValue(of({ token: 't1' }));
+      const root = await render(of('g1'));
+
+      await click('Copy pre-order link');
+
+      expect(guestInvite.getInviteToken$).toHaveBeenCalledWith('r1');
+      expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/join/t1`);
+      expect(root.textContent).toContain('Link copied');
+    });
+
+    it('removes the guest and reloads after the dialog is confirmed', async () => {
+      groupOrders.removeGuest$.and.returnValue(of(SESSIONS));
+      const root = await render(of('g1'));
+
+      await openRemoveDialog(root);
+      await click('Remove Anna', dialog(root)!);
+
+      expect(groupOrders.removeGuest$).toHaveBeenCalledWith('g1', 'guest-anna');
+      expect(groupOrders.getSessions$).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not remove the guest when the owner chooses "Keep"', async () => {
+      const root = await render(of('g1'));
+
+      await openRemoveDialog(root);
+      await click('Keep', dialog(root)!);
+
+      expect(groupOrders.removeGuest$).not.toHaveBeenCalled();
+      expect(dialog(root)).toBeNull();
+    });
+
+    it('submits at once when every seat has ordered', async () => {
+      groupOrders.submit$.and.returnValue(of([]));
+      const root = await render(of('g1'));
+
+      await click('Submit Pre-Order');
+
+      expect(dialog(root)).toBeNull();
+      expect(groupOrders.submit$).toHaveBeenCalledWith('g1', 'r1');
+    });
+
+    it('asks before submitting when seats are empty and does not submit on "Wait for guests"', async () => {
+      const root = await render(of('g1'), { ...status('Open'), maxCapacity: 5 });
+
+      await click('Submit Pre-Order');
+
+      expect(dialog(root)?.textContent).toContain("2 seats haven't pre-ordered yet");
+      await click('Wait for guests', dialog(root)!);
+
+      expect(groupOrders.submit$).not.toHaveBeenCalled();
+      expect(dialog(root)).toBeNull();
+    });
+
+    it('submits after "Confirm anyway" when seats are empty', async () => {
+      groupOrders.submit$.and.returnValue(of([]));
+      const root = await render(of('g1'), { ...status('Open'), maxCapacity: 5 });
+
+      await click('Submit Pre-Order');
+      await click('Confirm anyway', dialog(root)!);
+
+      expect(groupOrders.submit$).toHaveBeenCalledOnceWith('g1', 'r1');
+    });
+
+    it('disables the submit button when nobody has ordered', async () => {
+      const root = await render(of('g1'), { ...status('Open'), orderedCount: 0 });
+
+      const submit = buttons(root).find((b) => b.textContent?.trim() === 'Submit Pre-Order');
+      expect(submit?.disabled).toBeTrue();
+    });
   });
 });
