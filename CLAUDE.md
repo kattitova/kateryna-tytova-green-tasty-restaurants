@@ -8,7 +8,7 @@ Restaurant booking app: Angular frontend, .NET Lambda backend, shared AWS infras
 | Backend | `backend/restaurant-backend-app` | .NET 10 AWS Lambda, DynamoDB, Cognito, deployed with AWS Syndicate | `backend/restaurant-backend-app/CLAUDE.md` |
 | Infra | `infra/terraform` | Terraform ≥ 1.10, AWS provider ~> 5.0, S3 state backend | `infra/terraform/CLAUDE.md` |
 
-Deployment order and prerequisites: `README.md`. Deploy order is Terraform → Syndicate backend → frontend to S3.
+Deployment order and prerequisites: `README_HOMEWORK.md`. Deploy order is Terraform → Syndicate backend → frontend to S3.
 
 ## Language
 
