@@ -124,12 +124,38 @@ public class GroupReservationService(
         await groupReservationRepository.SaveGroupReservationAsync(groupReservation);
     }
 
+    public async Task SyncGroupWithGuestCountAsync(Reservation reservation)
+    {
+        if (reservation.CustomerId is null || reservation.Status != ReservationStatus.Reserved)
+            return;
+
+        GroupReservation? group = await groupReservationRepository.GetByReservationIdAsync(reservation.Id);
+
+        if (reservation.GuestCount >= GroupReservationRules.MinGuestCount)
+        {
+            if (group is null)
+            {
+                await CreateGroupReservationAsync(reservation.Id);
+            }
+            else if (group.Status == GroupReservationStatus.Closed)
+            {
+                group.Status = GroupReservationStatus.Open;
+                await groupReservationRepository.SaveGroupReservationAsync(group);
+            }
+        }
+        else if (group?.Status == GroupReservationStatus.Open)
+        {
+            group.Status = GroupReservationStatus.Closed;
+            await groupReservationRepository.SaveGroupReservationAsync(group);
+        }
+    }
+
     public async Task<GetGroupInviteTokenResponse> GetGroupReservationInviteTokenAsync(string reservationId)
     {
         var reservation = await reservationRepository.GetReservationByIdAsync(reservationId)
             ?? throw new ReservationNotFoundException($"Reservation {reservationId} was not found.");
 
-        if (reservation.GuestCount < 2)
+        if (reservation.GuestCount < GroupReservationRules.MinGuestCount)
             throw new ValidationException("Retrieving invitation token for the reservation with only one guest is not permitted.");
 
         if (reservation.Status != ReservationStatus.Reserved)

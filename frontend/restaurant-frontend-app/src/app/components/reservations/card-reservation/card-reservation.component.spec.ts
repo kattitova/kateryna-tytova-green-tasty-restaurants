@@ -2,6 +2,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { CardReservationComponent } from './card-reservation.component';
 import { API_BASE_URL } from '@app/shared/config/api-base-url.token';
+import { Roles } from '@app/shared/constants/roles';
+import { GroupBonusTier } from '@app/models/group-orders/group-bonus.model';
+import { Order } from '@app/models/orders/order.model';
 import { ReservationCustomer, ReservationStatusCustomer } from '@app/models/reservations/reservation.model';
 
 const RESERVATION: ReservationCustomer = {
@@ -82,5 +85,51 @@ describe('CardReservationComponent', () => {
     button!.click();
 
     expect(emitted).toEqual(['res-1']);
+  });
+
+  describe('group bonus badge', () => {
+    function preOrderWith(
+      groupBonusTier: GroupBonusTier | null | undefined,
+      discountPercent: number | undefined,
+    ): Order {
+      return {
+        orderId: 'order-1',
+        reservationId: 'res-1',
+        reservationAddress: 'Address',
+        reservationTime: 'Time',
+        status: 1,
+        orderItems: [],
+        groupBonusTier,
+        discountPercent,
+      };
+    }
+
+    function badgeText(preOrder: Order, role: string = Roles.WAITER): string | null {
+      fixture.componentRef.setInput('role', role);
+      const root = setReservation({ guestCount: 4, preOrder });
+      const badge = root.querySelector('[data-testid="group-bonus-badge"]');
+      return badge ? (badge.textContent ?? '').replace(/\s+/g, ' ').trim() : null;
+    }
+
+    it('shows "Group bonus: −10%" on the waiter card when the pre-order has a 10% bonus', () => {
+      expect(badgeText(preOrderWith('TenPercentDiscount', 10))).toBe('Group bonus: −10%');
+    });
+
+    it('shows "Free dessert" on the waiter card when the pre-order has a free dessert bonus', () => {
+      expect(badgeText(preOrderWith('FreeDessert', 0))).toBe('Free dessert');
+    });
+
+    it('shows no group bonus badge when the pre-order has no bonus', () => {
+      expect(badgeText(preOrderWith(null, 0))).toBeNull();
+      expect(badgeText(preOrderWith(undefined, undefined))).toBeNull();
+    });
+
+    it('shows no group bonus badge when the tier is a discount but discountPercent is 0', () => {
+      expect(badgeText(preOrderWith('TenPercentDiscount', 0))).toBeNull();
+    });
+
+    it('shows no group bonus badge on the customer card', () => {
+      expect(badgeText(preOrderWith('TenPercentDiscount', 10), Roles.CUSTOMER)).toBeNull();
+    });
   });
 });

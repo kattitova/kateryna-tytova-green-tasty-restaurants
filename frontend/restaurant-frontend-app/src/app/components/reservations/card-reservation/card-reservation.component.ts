@@ -18,6 +18,7 @@ import {
 import { PlaceOrderWaiterComponent } from '@app/components/place-order-waiter/place-order-waiter.component';
 import { Roles } from '@app/shared/constants/roles';
 import { isGroupReservation } from '@app/shared/helpers/group-reservation.helpers';
+import { groupBonusLabel } from '@app/shared/helpers/order-bill.helpers';
 import { buildPreOrderQueryParams } from '@app/shared/helpers/pre-order-navigation';
 import { CustomSelectComponent } from '@app/shared/custom-components/custom-select/custom-select.component';
 
@@ -131,6 +132,10 @@ export class CardReservationComponent {
   readonly preOrderItemCount = computed(() => {
     return this.r().preOrder?.orderItems?.length ?? 0;
   });
+
+  readonly groupBonusBadge = computed(() =>
+    groupBonusLabel(this.r().preOrder?.groupBonusTier, this.r().preOrder?.discountPercent),
+  );
 
   readonly canOpenWaiterPreOrder = computed(() => {
     return (

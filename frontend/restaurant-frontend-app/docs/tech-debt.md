@@ -106,3 +106,37 @@ Recorded on 2026-11-04 during the Group Pre-Order modal task (task folder `.clau
 - **Where:** `group-pre-order-modal.component.ts` (owner edit), backend sessions snapshot.
 - **Problem:** the snapshot skips dishes that the dish table does not have. An owner edit sends the list without them, so the order loses them.
 - **Fix:** keep unknown dishes in the snapshot with a flag, or keep them in the edit request.
+
+## 4. Group bonus on the waiter pages
+
+Recorded on 2026-11-04 (task folder `.claude/work/2026-11-04-group-bonus-and-edit-group/`).
+
+### 4.1 The waiter page computes the bill in three places (P2)
+
+- **Where:** `pages/waiter-pre-order-page/waiter-pre-order-page.component.ts`.
+- **Problem:** the component computes the bill again after load, confirm and reject.
+- **Fix:** use one `computed()` signal or one `refreshBill()` method.
+
+### 4.2 Item states are magic numbers (P2)
+
+- **Where:** `shared/helpers/order-bill.helpers.ts`, `submitted-order` component, waiter pre-order page.
+- **Problem:** the code uses `2` and other numbers for the item state.
+- **Fix:** add an `OrderItemState` enum that agrees with the backend `Entities/OrderItemState.cs`.
+
+### 4.3 The "Group Pre-Order" button does not read `guestInviteLinkAvailable` (P2)
+
+- **Where:** `components/reservations/card-reservation/`.
+- **Problem:** the button shows from the guest count only. It can show for a reservation that has no group.
+- **Fix:** show the button only when `guestInviteLinkAvailable` is true.
+
+### 4.4 `console.log` lines on the waiter page (P2)
+
+- **Where:** `pages/waiter-pre-order-page/waiter-pre-order-page.component.ts`.
+- **Problem:** debug output stays in production code.
+- **Fix:** remove the lines.
+
+### 4.5 One Karma run disconnected (P2)
+
+- **Where:** `npm test -- --watch=false --browsers=ChromeHeadless`.
+- **Problem:** one run printed "Executed 430 of 430" and then "DISCONNECTED (no message in 30000 ms)", with an HTTP request stack trace. The next runs passed (435 of 435).
+- **Fix:** if it occurs again, find the spec that leaves an open request, or increase `browserNoActivityTimeout`.

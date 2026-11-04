@@ -69,7 +69,7 @@ public class ReservationService : IReservationService
         await SaveReservationAsync(reservation, logger);
         await UpdateWaiterReservationsAsync(reservation.WaiterId, reservation.Id);
 
-        if (request.GuestCount >= 2)
+        if (request.GuestCount >= GroupReservationRules.MinGuestCount)
             await _groupReservationService.CreateGroupReservationAsync(reservation.Id);
 
         return ReservationMapper.ToReservationResponse(reservation, location.Address, tableNumber: table.TableNumber);
@@ -116,7 +116,7 @@ public class ReservationService : IReservationService
 
         if (reservation.Status == ReservationStatus.Reserved)
         {
-            if (reservation.GuestCount >= 2)
+            if (reservation.GuestCount >= GroupReservationRules.MinGuestCount)
                 await _groupReservationService.CreateGroupReservationIfDoesNotExistAsync(reservation.CustomerId, reservation.Id);
 
             return true;

@@ -3,6 +3,7 @@ using APIHandler.Entities;
 using APIHandler.Exceptions;
 using APIHandler.Mappers;
 using APIHandler.Models.GroupReservation;
+using APIHandler.Models.GuestSessions;
 using APIHandler.Repositories.GroupReservations;
 using APIHandler.Repositories.GuestSessions;
 using APIHandler.Repositories.Orders;
@@ -52,6 +53,16 @@ public class GroupPreOrderService(
             throw new ValidationException("Nothing to submit: the group has no pre-orders.");
         }
 
+        // The bonus is computed from the order before the merge, because the merge adds the guest dishes.
+        GroupOrderProgress progress = GroupPreOrderRules.Progress(order, sessions, group.Status);
+        GroupBonusResponse bonus = GroupBonusCalculator.Calculate(
+            reservation.GuestCount,
+            progress.OrderedCount,
+            progress.LastOrderedAtUtc,
+            reservation.StartTime.ToUniversalTime(),
+            DateTime.UtcNow,
+            groupIsOpen: true);
+
         if (order is null)
         {
             order = await CreateOwnerOrderAsync(userId, reservation, guestDishes);
@@ -62,6 +73,11 @@ public class GroupPreOrderService(
             order.Dishes = MergeIntoOrderItems(order.Dishes ?? [], guestDishes);
             order.Status = OrderStatus.SubmittedByCustomer;
         }
+
+        // A bonus that is not achieved replaces any value that an existing order has.
+        bool achieved = bonus.State == GroupBonusState.Achieved;
+        order.GroupBonusTier = achieved ? bonus.Tier : null;
+        order.DiscountPercent = achieved ? bonus.DiscountPercent : 0;
 
         if (!await groupReservationRepository.SubmitGroupPreOrderAsync(groupReservationId, order))
         {

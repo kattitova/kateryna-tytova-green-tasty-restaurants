@@ -7,6 +7,7 @@ using APIHandler.Helpers;
 using APIHandler.Mappers;
 using APIHandler.Models.Reservations;
 using APIHandler.Models.Users;
+using APIHandler.Services.GroupReservations;
 using APIHandler.Services.Locations;
 using System;
 using System.Linq;
@@ -24,10 +25,16 @@ public class EditReservationHandler : IApiRequestHandler
     private readonly IDynamoDBContext _dbContext;
     private readonly ILocationService _locationService;
 
-    public EditReservationHandler(IDynamoDBContext dbContext, ILocationService locationService)
+    private readonly IGroupReservationService _groupReservationService;
+
+    public EditReservationHandler(
+        IDynamoDBContext dbContext,
+        ILocationService locationService,
+        IGroupReservationService groupReservationService)
     {
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         _locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
+        _groupReservationService = groupReservationService ?? throw new ArgumentNullException(nameof(groupReservationService));
     }
 
     public async Task<APIGatewayProxyResponse> HandleRequest(APIGatewayProxyRequest request, ILambdaContext context)
@@ -97,6 +104,9 @@ public class EditReservationHandler : IApiRequestHandler
             context.Logger.LogError($"[ERROR] Failed to save reservation: {saveError}");
             return ResponseBuilder.CreateErrorResponse(500, "Failed to save reservation", context.Logger);
         }
+
+        // Not caught: an exception here becomes a 500, and the same edit, repeated, repairs the group.
+        await _groupReservationService.SyncGroupWithGuestCountAsync(reservation);
 
         var location = await TryGetLocationAsync(table.Id);
         if (location == null)

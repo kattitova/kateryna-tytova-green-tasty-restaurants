@@ -1,5 +1,6 @@
 using APIHandler.Constants.Orders;
 using APIHandler.Entities;
+using APIHandler.Helpers;
 using APIHandler.Models.GroupReservation;
 using System;
 using System.Collections.Generic;
@@ -57,5 +58,22 @@ public static class GroupPreOrderRules
         }
 
         return result;
+    }
+
+    public static GroupOrderProgress Progress(
+        Order? order,
+        IEnumerable<GuestSession> sessions,
+        GroupReservationStatus groupStatus)
+    {
+        var sessionList = sessions.ToList();
+        bool ownerOrdered = OwnerOwnItems(order, sessionList, groupStatus).Count > 0;
+        var submittedGuests = sessionList.GuestsOnly().Where(s => s.IsSubmitted).ToList();
+
+        DateTime? lastOrderedAt = submittedGuests
+            .Select(g => g.SubmittedAt)
+            .Append(ownerOrdered ? order?.CreatedAt : null)
+            .Max();
+
+        return new GroupOrderProgress((ownerOrdered ? 1 : 0) + submittedGuests.Count, lastOrderedAt);
     }
 }

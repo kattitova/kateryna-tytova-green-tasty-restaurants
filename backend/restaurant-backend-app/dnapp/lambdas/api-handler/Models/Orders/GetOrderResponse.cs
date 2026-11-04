@@ -1,5 +1,6 @@
 using APIHandler.Entities;
 using APIHandler.Models.Dishes;
+using APIHandler.Models.GuestSessions;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -24,4 +25,11 @@ public class GetOrderResponse
 
     [JsonPropertyName("status")]
     public OrderStatus Status { get; set; }
+
+    [JsonPropertyName("groupBonusTier")]
+    [JsonConverter(typeof(JsonStringEnumConverter<GroupBonusTier>))]
+    public GroupBonusTier? GroupBonusTier { get; set; }
+
+    [JsonPropertyName("discountPercent")]
+    public int DiscountPercent { get; set; }
 }

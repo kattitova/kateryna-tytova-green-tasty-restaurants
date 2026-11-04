@@ -118,6 +118,14 @@ Only a deployed stack can check these:
 - **New data.** `Order.createdAt` and `GuestSession.submittedAt` are optional. Records from before this change count as on time for the group bonus.
 - **Status and sessions.** `GET /guest/groups/{groupReservationId}/status` adds `orderedCount` and `bonus`. The sessions and delete responses add `owner`. See `docs/ApiRoutes.md`.
 
+## Amendment 2026-11-04 (2): stored group bonus and group sync on edit
+
+- **Stored bonus.** The bonus no longer lives only in the status route. At group submit, the service computes the bonus from the order before the merge, with `GroupPreOrderRules.Progress` and `GroupBonusCalculator`. If the state is `Achieved`, the order stores `groupBonusTier` and `discountPercent`. Otherwise the order stores `null` and 0, and this replaces an old value. Later order changes do not compute the bonus again. The status route stays live, so the two values can be different after the submit.
+- **Storage.** `TenPercentDiscount` is the enum value 0, so the order keeps the tier as its name through `NullableEnumAsStringConverter`. A null tier deletes the attribute on write (`REMOVE` in the submit transaction, `DELETE` in `SaveAsync`), and the SDK does not call the converter for null. A missing attribute reads as null, and the converter is not called. A stored `NULL` calls `FromEntry(DynamoDBNull)`, which returns null. A number gives `ArgumentOutOfRangeException`.
+- **Responses.** `GET /orders`, `GET /orders/{reservationId}` and `POST /orders` add `groupBonusTier`, `discountPercent` and `orderItems[].state`. See `docs/ApiRoutes.md`.
+- **Waiter UI.** The waiter pre-order page applies `discountPercent` to the current items that are not `Canceled`. After a waiter change, the waiter total can be different from the amount that the owner saw. The waiter card shows a badge for the bonus.
+- **Edit sync.** `PUT /reservations` calls `IGroupReservationService.SyncGroupWithGuestCountAsync` after the save. This applies to a reservation with a customer and the status `Reserved`. With 2 guests or more, the sync creates a group or re-opens a `Closed` group. With fewer than 2 guests, it closes an `Open` group. A `Submitted` group does not change. Guest sessions stay. The threshold is `GroupReservationRules.MinGuestCount`, which `ReservationService` and `GroupReservationService` also use.
+
 ## References
 
 - Contract: `docs/ApiRoutes.md`, entries `GET /reservations/{reservationId}/guest-session-id` and `POST /guest/groups/{groupReservationId}/submit`. Swagger: `swagger_src/swagger-ui/swagger-endpoints.yaml`, `getOwnerSessionId` and `submitGroupPreOrder`.
@@ -125,4 +133,5 @@ Only a deployed stack can check these:
 - Infra: `deployment_resources.json` (API Gateway resources)
 - Tests: `Tests/Helpers/GuestSessionExtensionsTests.cs`, `Tests/Services/GuestSessionServiceTests.cs`, `Tests/Services/GroupReservationServiceTests.cs`, `Tests/Services/GroupPreOrderServiceTests.cs`, `Tests/Repositories/GroupReservationRepositoryTests.cs`, `Tests/Handlers/GetOwnerSessionIdHandlerTests.cs`, `Tests/Handlers/SubmitGroupPreOrderHandlerTests.cs`
 - Previous decision: `docs/decisions/0001-group-sessions-endpoint.md`
+- Tests (amendment 2): `Tests/Services/GroupPreOrderRulesTests.cs`, `Tests/Converters/NullableEnumAsStringConverterTests.cs`, `Tests/Entities/OrderStorageTests.cs`, `Tests/Helpers/OrderMapperTests.cs`, `Tests/Handlers/EditReservationHandlerTests.cs`
 - Debt: `docs/tech-debt.md`, item 1.1

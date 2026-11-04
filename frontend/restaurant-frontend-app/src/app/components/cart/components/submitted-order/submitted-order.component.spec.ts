@@ -93,6 +93,54 @@ describe('SubmittedOrderComponent', () => {
     expect(component.totalPrice()).toBe(20);
   });
 
+  describe('item state (pinning tests: the API now sends the state)', () => {
+    const statusTexts = (): string[] =>
+      Array.from(
+        (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.order-item [class*="status-"]')
+      ).map((element) => element.textContent?.replace(/\s+/g, ' ').trim() ?? '');
+
+    const orderWithStates = (...states: (number | undefined)[]): Order =>
+      ({
+        ...order,
+        orderItems: states.map((state, index) => ({
+          quantity: 1,
+          state,
+          dish: { id: `dish-${index}`, name: `Dish ${index}`, price: 10 },
+        })),
+      }) as unknown as Order;
+
+    const showOrder = (nextOrder: Order): void => {
+      fixture.componentRef.setInput('order', nextOrder);
+      fixture.detectChanges();
+    };
+
+    it('shows the item state labels Pending, Confirmed and Rejected from the order', () => {
+      showOrder(orderWithStates(0, 1, 2));
+
+      expect(statusTexts()).toEqual(['(Pending)', '(Confirmed)', '(Rejected)']);
+    });
+
+    it('shows "(Unknown)" for an item without a state', () => {
+      showOrder(orderWithStates(undefined));
+
+      expect(statusTexts()).toEqual(['(Unknown)']);
+    });
+
+    it('shows a total price without the rejected dishes', () => {
+      const totalText = (fixture.nativeElement as HTMLElement).querySelector('h3')?.textContent?.trim();
+
+      expect(totalText).toBe('$20.00');
+    });
+
+    it('counts an item without a state in the total and drops only rejected items', () => {
+      showOrder(orderWithStates(0, undefined, 2));
+
+      const totalText = (fixture.nativeElement as HTMLElement).querySelector('h3')?.textContent?.trim();
+
+      expect(totalText).toBe('$20.00');
+    });
+  });
+
   describe('edit and cancel by order mode', () => {
     it('shows "Edit Pre-order" in single mode and emits edited on click', () => {
       setMode('single');

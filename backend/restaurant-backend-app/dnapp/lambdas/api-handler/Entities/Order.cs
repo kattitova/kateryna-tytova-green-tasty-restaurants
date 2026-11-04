@@ -1,5 +1,6 @@
 using Amazon.DynamoDBv2.DataModel;
 using APIHandler.Converters;
+using APIHandler.Models.GuestSessions;
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
@@ -43,4 +44,14 @@ public class Order
     [DynamoDBProperty("createdAt")]
     [JsonPropertyName("createdAt")]
     public DateTime? CreatedAt { get; set; }
+
+    // Group bonus frozen at group submit. Null = no bonus (no attribute is stored).
+    [DynamoDBProperty("groupBonusTier", typeof(NullableEnumAsStringConverter<GroupBonusTier>))]
+    [JsonPropertyName("groupBonusTier")]
+    public GroupBonusTier? GroupBonusTier { get; set; }
+
+    // 10 for TenPercentDiscount, otherwise 0. A missing attribute reads as 0.
+    [DynamoDBProperty("discountPercent")]
+    [JsonPropertyName("discountPercent")]
+    public int DiscountPercent { get; set; }
 }

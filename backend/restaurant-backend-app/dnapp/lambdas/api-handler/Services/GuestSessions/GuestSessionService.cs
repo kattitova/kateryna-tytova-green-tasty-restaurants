@@ -167,16 +167,9 @@ public class GuestSessionService(
 
         var sessions = await guestSessionRepository.GetAllByGroupReservationIdAsync(groupReservationId) ?? [];
         var guests = sessions.GuestsOnly().ToList();
-        var submittedGuests = guests.Where(g => g.IsSubmitted).ToList();
 
         Order? order = await orderRepository.GetOrderByReservationIdAsync(group.ReservationId);
-        bool ownerOrdered = GroupPreOrderRules.OwnerOwnItems(order, sessions, group.Status).Count > 0;
-
-        int orderedCount = (ownerOrdered ? 1 : 0) + submittedGuests.Count;
-        DateTime? lastOrderedAt = submittedGuests
-            .Select(g => g.SubmittedAt)
-            .Append(ownerOrdered ? order?.CreatedAt : null)
-            .Max();
+        var (orderedCount, lastOrderedAt) = GroupPreOrderRules.Progress(order, sessions, group.Status);
 
         return new GroupReservationStatusResponse
         {

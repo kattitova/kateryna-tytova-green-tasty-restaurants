@@ -38,3 +38,26 @@
     </app-dish-card>
   }
 </div>
+
+@if (orderItems.length > 0) {
+  <div
+    class="wpo-bill"
+    data-testid="wpo-bill"
+    role="status"
+    aria-live="polite"
+    aria-label="Order total"
+  >
+    @if (bill.discountAmount > 0) {
+      <div class="wpo-bill-line" data-testid="wpo-subtotal">
+        Total before discount: {{ bill.subtotal | currency }}
+      </div>
+      <div class="wpo-bill-line" data-testid="wpo-discount">
+        Group discount −{{ bill.discountPercent }}%: −{{ bill.discountAmount | currency }}
+      </div>
+    }
+    @if (groupBonusTier === 'FreeDessert') {
+      <div class="wpo-bill-line" data-testid="wpo-free-dessert">Group bonus: free dessert</div>
+    }
+    <div class="wpo-bill-total" data-testid="wpo-total">Total: {{ bill.finalTotal | currency }}</div>
+  </div>
+}

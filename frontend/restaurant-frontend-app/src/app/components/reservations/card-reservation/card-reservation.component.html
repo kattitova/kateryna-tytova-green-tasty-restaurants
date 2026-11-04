@@ -63,6 +63,10 @@
         ) {
         <span class="preorder-badge">Pre-order</span>
       }
+
+      @if (role() === Roles.WAITER && groupBonusBadge()) {
+        <span class="group-bonus-badge" data-testid="group-bonus-badge">{{ groupBonusBadge() }}</span>
+      }
     </div>
 
     <div class="details-line">

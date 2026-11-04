@@ -17,12 +17,15 @@ public static class OrderMapper
             ReservationAddress = order.ReservationAddress,
             ReservationTime = order.ReservationTime,
             Status = order.Status,
+            GroupBonusTier = order.GroupBonusTier,
+            DiscountPercent = order.DiscountPercent,
             OrderItems = order.Dishes
                 .Where(d => dishes.Any(dish => dish.Id == d.DishId))
                 .Select(d => new OrderItemResponse
                 {
                     Dish = DishMapper.ToDishResponse(dishes.First(dish => dish.Id == d.DishId)),
-                    Quantity = d.Quantity
+                    Quantity = d.Quantity,
+                    State = d.State
                 }).ToList(),
         };
     }

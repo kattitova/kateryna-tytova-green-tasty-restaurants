@@ -1,16 +1,13 @@
 import { GroupPreOrderView, GroupSeat } from '@app/models/group-orders/group-pre-order-view.model';
 import { GroupSessionsResponse } from '@app/models/group-orders/group-sessions-response.model';
 import { GroupStatusResponse } from '@app/models/group-orders/group-status.model';
+import { round2 } from './money.helpers';
 
 export type { GroupPreOrderView, GroupSeat } from '@app/models/group-orders/group-pre-order-view.model';
 
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
-
-function round2(value: number): number {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
-}
 
 /** First letters of the first two words, upper case. */
 function initialsOf(name: string): string {

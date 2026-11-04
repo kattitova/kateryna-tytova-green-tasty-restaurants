@@ -1,4 +1,5 @@
 import { OrderItem } from '../dishes/order-item.model';
+import { GroupBonusTier } from '../group-orders/group-bonus.model';
 
 export interface Order {
   orderId: string;
@@ -7,6 +8,8 @@ export interface Order {
   reservationId: string;
   orderItems: OrderItem[];
   status: number;
+  groupBonusTier?: GroupBonusTier | null;
+  discountPercent?: number;
 }
 
 export interface WaiterPreOrderState {

@@ -1,3 +1,4 @@
+import { CurrencyPipe } from '@angular/common';
 import { PreOrdersService } from '@app/services/pre-orders/pre-orders.service';
 import {
   ChangeDetectorRef,
@@ -12,11 +13,14 @@ import { OrderItem } from '@app/models/dishes/order-item.model';
 import { DishCardComponent } from '@app/shared/custom-components/dish-card/dish-card.component';
 import { firstValueFrom } from 'rxjs';
 import { WaiterPreOrderState } from '@app/models/orders/order.model';
+import { GroupBonusTier } from '@app/models/group-orders/group-bonus.model';
+import { OrderBill } from '@app/models/orders/order-bill.model';
+import { buildOrderBill } from '@app/shared/helpers/order-bill.helpers';
 import { CustomButtonComponent } from '@app/shared/custom-components/custom-button/custom-button.component';
 
 @Component({
   selector: 'app-waiter-pre-order-page',
-  imports: [DishCardComponent, RouterLink, CustomButtonComponent],
+  imports: [DishCardComponent, RouterLink, CustomButtonComponent, CurrencyPipe],
   templateUrl: './waiter-pre-order-page.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './waiter-pre-order-page.component.scss',
@@ -24,6 +28,9 @@ import { CustomButtonComponent } from '@app/shared/custom-components/custom-butt
 export class WaiterPreOrderPageComponent implements OnInit {
   reservationLabel = '';
   orderItems: OrderItem[] = [];
+  bill: OrderBill = buildOrderBill([], 0);
+  groupBonusTier: GroupBonusTier | null = null;
+  discountPercent = 0;
 
   reservationId = '';
   createdByName = '';
@@ -69,11 +76,17 @@ export class WaiterPreOrderPageComponent implements OnInit {
 
         this.orderItems = order.orderItems ?? [];
         this.reservationTime = order.reservationTime || '';
-        // this.refreshOrder();
+        this.groupBonusTier = order.groupBonusTier ?? null;
+        this.discountPercent = order.discountPercent ?? 0;
+        this.updateBill();
       })
       .catch((err) => {
         console.error('Error loading order:', err);
       });
+  }
+
+  private updateBill(): void {
+    this.bill = buildOrderBill(this.orderItems, this.discountPercent);
   }
 
   onRemove(dishId: string) {
@@ -96,6 +109,7 @@ export class WaiterPreOrderPageComponent implements OnInit {
           };
           this.orderItems.splice(index, 1, updatedItem);
           this.orderItems = [...this.orderItems];
+          this.updateBill();
           this.cdr.detectChanges();
           console.log('Updated orderItems:', this.orderItems);
         }
@@ -122,6 +136,7 @@ export class WaiterPreOrderPageComponent implements OnInit {
           };
           this.orderItems.splice(index, 1, updatedItem);
           this.orderItems = [...this.orderItems];
+          this.updateBill();
           this.cdr.detectChanges();
           console.log('Dish rejected and updated locally:', updatedItem);
           console.log('Updated orderItems:', this.orderItems);

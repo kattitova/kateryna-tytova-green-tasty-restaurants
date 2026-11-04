@@ -632,6 +632,18 @@ Response: `200 OK`
 }
 ```
 
+After the endpoint saves the reservation, it changes the group reservation. This applies only to a reservation that has a customer and the status `Reserved`. Otherwise the group does not change.
+
+| New `guestCount` | Group reservation | Result |
+|---|---|---|
+| 2 or more | None | A new group with status `Open`. |
+| 2 or more | `Closed` | The same group becomes `Open`, with the same `groupReservationId` and token. |
+| 2 or more | `Open` or `Submitted` | No change. |
+| Less than 2 | `Open` | The group becomes `Closed`. The guest sessions stay. |
+| Less than 2 | `Submitted`, `Closed` or none | No change. |
+
+If the group write fails, the endpoint returns 500. The same edit, repeated, repairs the group.
+
 ### `PATCH` /reservations/{reservationId}/order/confirmations/{dishId}
 Response: `200 OK`
 ```json
@@ -877,13 +889,23 @@ Response: `200 OK`
           "imageUrl": "string",
           "state": "string"
         },
-        "quantity": 2
+        "quantity": 2,
+        "state": 0
       }
     ],
-    "status": "Created"
+    "status": "Created",
+    "groupBonusTier": "TenPercentDiscount",
+    "discountPercent": 10
   }
 ]
 ```
+
+The order response has these fields for the group bonus and the item state:
+- `groupBonusTier` is `"TenPercentDiscount"`, `"FreeDessert"` or `null`. `discountPercent` is 10 for `TenPercentDiscount`, and 0 otherwise. Orders from before this change return `null` and 0.
+- `orderItems[].state` is the number of the item state: 0 `Pending`, 1 `Confirmed`, 2 `Canceled`. The frontend shows state 2 as "Rejected". The source is `Constants/Orders/OrderItemState.cs`.
+- The API does not compute a total. The client applies `discountPercent` to the items that are not `Canceled`.
+- Only a group submit sets the bonus (see `POST /guest/groups/{groupReservationId}/submit`). A later change of the order does not compute it again.
+- Storage: the order keeps the tier as its name. If the order has no bonus, the write deletes the `groupBonusTier` attribute. A missing attribute reads as `null`.
 
 ### `GET` /orders/{reservationId}
 Response: `200 OK`
@@ -910,10 +932,13 @@ Response: `200 OK`
         "imageUrl": "string",
         "state": "string"
       },
-      "quantity": 2
+      "quantity": 2,
+      "state": 0
     }
   ],
-  "status": "Created"
+  "status": "Created",
+  "groupBonusTier": "TenPercentDiscount",
+  "discountPercent": 10
 }
 ```
 
@@ -955,12 +980,17 @@ Response: `201 Created`
         "imageUrl": "string",
         "state": "string"
       },
-      "quantity": 2
+      "quantity": 2,
+      "state": 0
     }
   ],
-  "status": "Created"
+  "status": "Created",
+  "groupBonusTier": "TenPercentDiscount",
+  "discountPercent": 10
 }
 ```
+
+The response has the same fields as `GET /orders/{reservationId}`, including `groupBonusTier`, `discountPercent` and `orderItems[].state`. A new order has `groupBonusTier` `null`, `discountPercent` 0 and the item state 0.
 
 ### `PUT` /orders/{reservationId}
 Request body:
@@ -1303,6 +1333,7 @@ Notes:
   - An order item with the same `dishId` and state `Canceled` gets the quantity from the guest sessions. Its state becomes `Pending`.
   - A dish without an order item becomes a new `Pending` item at the end of the list.
   - Order items for other dishes do not change.
+- Before the write, the request computes the group bonus with the rules of the status route, from the order before the merge. If the bonus state is `Achieved`, the order gets `groupBonusTier` and `discountPercent`. Otherwise the order gets `null` and 0, and this replaces a value from before. When there is no bonus, the write deletes the `groupBonusTier` attribute. Later order changes do not compute the bonus again.
 - The order status becomes `SubmittedByCustomer`, and the group reservation status becomes `Submitted`. One DynamoDB transaction writes both items, so both change or neither changes.
 - The transaction writes the group reservation only if its status is `Open`. A second or parallel submit gets 400 `GroupReservationSubmitted`.
 - After the submit, guests cannot change their sessions.

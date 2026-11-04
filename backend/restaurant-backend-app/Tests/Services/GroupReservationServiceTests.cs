@@ -319,4 +319,170 @@ public class GroupReservationServiceTests
 
         await Assert.ThrowsAsync(type, () => _service.GetGroupReservationInviteTokenAsync(reservation.Id));
     }
+
+    [Fact]
+    public async Task GetGroupReservationInviteTokenAsync_TwoGuests_ReturnsToken()
+    {
+        var reservation = ArrangeReservation(2);
+        var group = ArrangeGroup(GroupReservationStatus.Open);
+        _reservationRepositoryMock.Setup(r => r.GetReservationByIdAsync(reservation.Id)).ReturnsAsync(reservation);
+        _groupReservationRepositoryMock.Setup(r => r.GetByReservationIdAsync(reservation.Id)).ReturnsAsync(group);
+
+        GetGroupInviteTokenResponse result = await _service.GetGroupReservationInviteTokenAsync(reservation.Id);
+
+        Assert.Equal(group.ReservationToken, result.Token);
+    }
+
+    // SyncGroupWithGuestCountAsync
+
+    private const string SyncReservationId = "reservation-1";
+
+    private static Reservation ArrangeReservation(
+        int guestCount,
+        ReservationStatus status = ReservationStatus.Reserved,
+        string? customerId = "customer-1") => new()
+    {
+        Id = SyncReservationId,
+        TableId = "table-1",
+        WaiterId = "waiter-1",
+        CustomerId = customerId,
+        GuestCount = guestCount,
+        Status = status
+    };
+
+    private static GroupReservation ArrangeGroup(GroupReservationStatus status) => new()
+    {
+        GroupReservationId = "group-1",
+        ReservationId = SyncReservationId,
+        ReservationToken = "token-1",
+        Status = status
+    };
+
+    private void ArrangeExistingGroup(GroupReservation? group) =>
+        _groupReservationRepositoryMock
+            .Setup(r => r.GetByReservationIdAsync(SyncReservationId))
+            .ReturnsAsync(group);
+
+    private void VerifyNoSyncRepositoryCalls()
+    {
+        _groupReservationRepositoryMock.Verify(r => r.GetByReservationIdAsync(It.IsAny<string>()), Times.Never);
+        _groupReservationRepositoryMock.Verify(r => r.SaveGroupReservationAsync(It.IsAny<GroupReservation>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SyncGroupWithGuestCountAsync_TwoGuestsAndNoGroup_CreatesOpenGroup()
+    {
+        ArrangeExistingGroup(null);
+        GroupReservation? saved = null;
+        _groupReservationRepositoryMock
+            .Setup(r => r.SaveGroupReservationAsync(It.IsAny<GroupReservation>()))
+            .Callback<GroupReservation>(g => saved = g)
+            .Returns(Task.CompletedTask);
+
+        await _service.SyncGroupWithGuestCountAsync(ArrangeReservation(2));
+
+        _groupReservationRepositoryMock.Verify(r => r.SaveGroupReservationAsync(It.IsAny<GroupReservation>()), Times.Once);
+        Assert.NotNull(saved);
+        Assert.Equal(SyncReservationId, saved.ReservationId);
+        Assert.Equal(GroupReservationStatus.Open, saved.Status);
+        Assert.False(string.IsNullOrWhiteSpace(saved.GroupReservationId));
+        Assert.False(string.IsNullOrWhiteSpace(saved.ReservationToken));
+    }
+
+    [Fact]
+    public async Task SyncGroupWithGuestCountAsync_TwoGuestsAndClosedGroup_ReopensSameGroup()
+    {
+        var group = ArrangeGroup(GroupReservationStatus.Closed);
+        ArrangeExistingGroup(group);
+
+        await _service.SyncGroupWithGuestCountAsync(ArrangeReservation(3));
+
+        _groupReservationRepositoryMock.Verify(r => r.SaveGroupReservationAsync(It.IsAny<GroupReservation>()), Times.Once);
+        _groupReservationRepositoryMock.Verify(r => r.SaveGroupReservationAsync(
+            It.Is<GroupReservation>(g => g.GroupReservationId == "group-1"
+                && g.ReservationToken == "token-1"
+                && g.Status == GroupReservationStatus.Open)), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(GroupReservationStatus.Open)]
+    [InlineData(GroupReservationStatus.Submitted)]
+    public async Task SyncGroupWithGuestCountAsync_TwoGuestsAndActiveGroup_WritesNothing(GroupReservationStatus status)
+    {
+        var group = ArrangeGroup(status);
+        ArrangeExistingGroup(group);
+
+        await _service.SyncGroupWithGuestCountAsync(ArrangeReservation(2));
+
+        _groupReservationRepositoryMock.Verify(r => r.SaveGroupReservationAsync(It.IsAny<GroupReservation>()), Times.Never);
+        Assert.Equal(status, group.Status);
+    }
+
+    [Fact]
+    public async Task SyncGroupWithGuestCountAsync_OneGuestAndOpenGroup_ClosesGroupAndKeepsSessions()
+    {
+        ArrangeExistingGroup(ArrangeGroup(GroupReservationStatus.Open));
+
+        await _service.SyncGroupWithGuestCountAsync(ArrangeReservation(1));
+
+        _groupReservationRepositoryMock.Verify(r => r.SaveGroupReservationAsync(It.IsAny<GroupReservation>()), Times.Once);
+        _groupReservationRepositoryMock.Verify(r => r.SaveGroupReservationAsync(
+            It.Is<GroupReservation>(g => g.GroupReservationId == "group-1" && g.Status == GroupReservationStatus.Closed)), Times.Once);
+        _guestSessionRepositoryMock.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData(GroupReservationStatus.Submitted)]
+    [InlineData(GroupReservationStatus.Closed)]
+    [InlineData(null)]
+    public async Task SyncGroupWithGuestCountAsync_OneGuestAndNoOpenGroup_WritesNothing(GroupReservationStatus? status)
+    {
+        ArrangeExistingGroup(status is null ? null : ArrangeGroup(status.Value));
+
+        await _service.SyncGroupWithGuestCountAsync(ArrangeReservation(1));
+
+        _groupReservationRepositoryMock.Verify(r => r.SaveGroupReservationAsync(It.IsAny<GroupReservation>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SyncGroupWithGuestCountAsync_NoCustomer_DoesNothing()
+    {
+        ArrangeExistingGroup(ArrangeGroup(GroupReservationStatus.Open));
+
+        await _service.SyncGroupWithGuestCountAsync(ArrangeReservation(1, customerId: null));
+
+        VerifyNoSyncRepositoryCalls();
+    }
+
+    [Theory]
+    [InlineData(ReservationStatus.Cancelled)]
+    [InlineData(ReservationStatus.InProgress)]
+    [InlineData(ReservationStatus.Completed)]
+    public async Task SyncGroupWithGuestCountAsync_ReservationNotReserved_DoesNothing(ReservationStatus status)
+    {
+        ArrangeExistingGroup(ArrangeGroup(GroupReservationStatus.Closed));
+
+        await _service.SyncGroupWithGuestCountAsync(ArrangeReservation(3, status));
+
+        VerifyNoSyncRepositoryCalls();
+    }
+
+    [Theory]
+    [InlineData(1, GroupReservationStatus.Open, GroupReservationStatus.Closed)]
+    [InlineData(2, null, GroupReservationStatus.Open)]
+    public async Task SyncGroupWithGuestCountAsync_GuestCountBoundary(
+        int guestCount, GroupReservationStatus? existing, GroupReservationStatus expectedSaved)
+    {
+        ArrangeExistingGroup(existing is null ? null : ArrangeGroup(existing.Value));
+        GroupReservation? saved = null;
+        _groupReservationRepositoryMock
+            .Setup(r => r.SaveGroupReservationAsync(It.IsAny<GroupReservation>()))
+            .Callback<GroupReservation>(g => saved = g)
+            .Returns(Task.CompletedTask);
+
+        await _service.SyncGroupWithGuestCountAsync(ArrangeReservation(guestCount));
+
+        Assert.NotNull(saved);
+        Assert.Equal(expectedSaved, saved.Status);
+    }
 }

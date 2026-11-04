@@ -2,6 +2,7 @@ using APIHandler.Constants.Orders;
 using APIHandler.Entities;
 using APIHandler.Exceptions;
 using APIHandler.Models.GroupReservation;
+using APIHandler.Models.GuestSessions;
 using APIHandler.Repositories.GroupReservations;
 using APIHandler.Repositories.GuestSessions;
 using APIHandler.Repositories.Orders;
@@ -525,5 +526,164 @@ public class GroupPreOrderServiceTests
         Assert.Equal(2, _submittedOrder.Dishes.Count);
         AssertItem(_submittedOrder.Dishes[0], "dish1", 3, OrderItemState.Pending);
         AssertItem(_submittedOrder.Dishes[1], "dish2", 2, OrderItemState.Pending);
+    }
+
+    // Stored group bonus (frozen at submit)
+
+    private void ArrangeReservationWithSeats(int guestCount, DateTime startTime)
+    {
+        _mockReservationRepository
+            .Setup(r => r.GetReservationByIdAsync(ReservationId))
+            .ReturnsAsync(new Reservation
+            {
+                Id = ReservationId,
+                TableId = "table-1",
+                WaiterId = "waiter-1",
+                CustomerId = UserId,
+                GuestCount = guestCount,
+                StartTime = startTime,
+                EndTime = startTime.AddHours(2)
+            });
+        ArrangeGroup();
+    }
+
+    private static GuestSession SubmittedGuest(string id, DateTime? submittedAt)
+    {
+        var guest = Session(id, isSubmitted: true, items: ("dish1", 1));
+        guest.SubmittedAt = submittedAt;
+        return guest;
+    }
+
+    private Order ArrangeOwnerOrder(DateTime? createdAt)
+    {
+        Order order = ArrangeOrder(Item("dish9", 1, OrderItemState.Pending));
+        order.CreatedAt = createdAt;
+        return order;
+    }
+
+    private void ArrangeNoOrderWithLocation()
+    {
+        _mockOrderRepository
+            .Setup(r => r.GetOrderByReservationIdAsync(ReservationId))
+            .ReturnsAsync((Order?)null);
+        _mockLocationService
+            .Setup(l => l.GetLocationByTableIdAsync("table-1"))
+            .ReturnsAsync(new Location { Id = "loc-1", Address = "Address", Description = "d", AverageOccupancy = "Low" });
+    }
+
+    private void AssertStoredBonus(GroupBonusTier? tier, int percent)
+    {
+        Assert.NotNull(_submittedOrder);
+        Assert.Equal(tier, _submittedOrder.GroupBonusTier);
+        Assert.Equal(percent, _submittedOrder.DiscountPercent);
+    }
+
+    [Fact]
+    public async Task SubmitGroupPreOrderAsync_AllSeatsOrderedMoreThan24hBeforeStart_StoresTenPercentDiscount()
+    {
+        var now = DateTime.UtcNow;
+        ArrangeReservationWithSeats(3, now.AddDays(3));
+        ArrangeSessions(SubmittedGuest("guest-a", now.AddHours(-1)), SubmittedGuest("guest-b", now.AddHours(-1)));
+        ArrangeOwnerOrder(now.AddHours(-1));
+
+        await Submit();
+
+        AssertStoredBonus(GroupBonusTier.TenPercentDiscount, 10);
+    }
+
+    [Fact]
+    public async Task SubmitGroupPreOrderAsync_AllSeatsOrderedBetween24hAnd2hBeforeStart_StoresFreeDessert()
+    {
+        var now = DateTime.UtcNow;
+        ArrangeReservationWithSeats(2, now.AddHours(5));
+        ArrangeSessions(SubmittedGuest("guest-a", now.AddHours(-1)));
+        ArrangeOwnerOrder(now.AddHours(-1));
+
+        await Submit();
+
+        AssertStoredBonus(GroupBonusTier.FreeDessert, 0);
+    }
+
+    [Fact]
+    public async Task SubmitGroupPreOrderAsync_NotAllSeatsOrdered_StoresNoBonus()
+    {
+        var now = DateTime.UtcNow;
+        ArrangeReservationWithSeats(4, now.AddDays(3));
+        ArrangeSessions(SubmittedGuest("guest-a", now.AddHours(-1)), SubmittedGuest("guest-b", now.AddHours(-1)));
+        ArrangeOwnerOrder(now.AddHours(-1));
+
+        await Submit();
+
+        AssertStoredBonus(null, 0);
+    }
+
+    [Fact]
+    public async Task SubmitGroupPreOrderAsync_LastOrderLessThan2hBeforeStart_StoresNoBonus()
+    {
+        var now = DateTime.UtcNow;
+        ArrangeReservationWithSeats(2, now.AddHours(1));
+        ArrangeSessions(SubmittedGuest("guest-a", now.AddMinutes(-30)));
+        ArrangeOwnerOrder(now.AddMinutes(-30));
+
+        await Submit();
+
+        AssertStoredBonus(null, 0);
+    }
+
+    [Fact]
+    public async Task SubmitGroupPreOrderAsync_ExistingOrderHasOldBonusAndBonusNotAchieved_ResetsBonus()
+    {
+        var now = DateTime.UtcNow;
+        ArrangeReservationWithSeats(4, now.AddDays(3));
+        ArrangeSessions();
+        Order order = ArrangeOwnerOrder(now.AddHours(-1));
+        order.GroupBonusTier = GroupBonusTier.TenPercentDiscount;
+        order.DiscountPercent = 10;
+
+        await Submit();
+
+        AssertStoredBonus(null, 0);
+    }
+
+    // Realistic create path: the owner has no order yet, so the owner does not count as an ordered seat.
+    [Fact]
+    public async Task SubmitGroupPreOrderAsync_NoOrderAndTwoOfThreeSeatsOrdered_CreatedOrderStoresNoBonus()
+    {
+        var now = DateTime.UtcNow;
+        ArrangeReservationWithSeats(3, now.AddDays(3));
+        ArrangeSessions(SubmittedGuest("guest-a", now.AddHours(-1)), SubmittedGuest("guest-b", now.AddHours(-1)));
+        ArrangeNoOrderWithLocation();
+
+        await Submit();
+
+        AssertStoredBonus(null, 0);
+    }
+
+    // Pins the code path only. In production a guest join stops at joinedGuests + 1 >= GuestCount
+    // (GuestSessionService), so guests alone cannot fill every seat.
+    [Fact]
+    public async Task SubmitGroupPreOrderAsync_NoOrderAndGuestsFillAllSeats_CreatedOrderStoresBonus()
+    {
+        var now = DateTime.UtcNow;
+        ArrangeReservationWithSeats(2, now.AddDays(3));
+        ArrangeSessions(SubmittedGuest("guest-a", now.AddHours(-1)), SubmittedGuest("guest-b", now.AddHours(-1)));
+        ArrangeNoOrderWithLocation();
+
+        await Submit();
+
+        AssertStoredBonus(GroupBonusTier.TenPercentDiscount, 10);
+    }
+
+    [Fact]
+    public async Task SubmitGroupPreOrderAsync_OldRecordsWithoutTimes_CountAsOnTime()
+    {
+        var now = DateTime.UtcNow;
+        ArrangeReservationWithSeats(2, now.AddHours(1));
+        ArrangeSessions(SubmittedGuest("guest-a", null));
+        ArrangeOwnerOrder(null);
+
+        await Submit();
+
+        AssertStoredBonus(GroupBonusTier.TenPercentDiscount, 10);
     }
 }
