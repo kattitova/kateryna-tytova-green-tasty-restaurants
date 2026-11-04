@@ -100,7 +100,9 @@ The DELETE task of 2026-11-02 fixed items 1.1 (the DELETE part), 1.2, 1.3, 1.4 a
 
 Recorded on 2026-11-02. Item 4.3 existed before that task.
 
-### 4.1 The frontend does not call the new endpoints (P2)
+### 4.1 The frontend does not call the new endpoints (fixed)
+
+- **Fixed on 2026-11-04** by the Group Pre-Order modal task: `GroupOrdersService` calls the owner group id, sessions, status, DELETE session and group submit routes.
 
 - **Where:** `frontend/restaurant-frontend-app`.
 - **Problem:** no frontend model or call exists for `GET /reservations/{reservationId}/guest-session-id` (response `{"guestSessionId"}`) and `POST /guest/groups/{groupReservationId}/submit` (request `{"reservationId"}`, response `[{"dishId", "quantity"}]`). The user approved a separate frontend task.
@@ -124,6 +126,40 @@ Recorded on 2026-11-02. Item 4.3 existed before that task.
 - **Where:** `Handlers/GroupReservations/GetGuestReservationHandler.cs`.
 - **Problem:** the file declares `APIHandler.Handlers.GuestReservations`. The other files in the folder use `APIHandler.Handlers.GroupReservations`.
 - **Fix:** change the namespace and the `using` lines that refer to it.
+
+## 5. Follow-ups from the Group Pre-Order modal task
+
+Recorded on 2026-11-04 (task folder `.claude/work/2026-11-04-group-preorder-modal/`).
+
+### 5.1 The group discount is not stored on the order (P2)
+
+- **Where:** `Services/GroupReservations/GroupPreOrderService.cs` (`SubmitGroupPreOrderAsync`), `Entities/Order.cs`.
+- **Problem:** only the owner's modal shows the 10% discount or the free dessert. The order has no bonus field, so the waiter does not see the bonus. The user accepted this for now.
+- **Fix:** at group submit, save the bonus tier and the discount percent on the order. Show them in the waiter UI.
+
+### 5.2 A waiter edit can break the owner's own items (P2)
+
+- **Where:** `Services/GroupReservations/GroupPreOrderRules.cs` (`OwnerOwnItems`).
+- **Problem:** after a group submit, the owner's own items are the order items minus the submitted guests' dishes. If a waiter changes the order, the result can be wrong.
+- **Fix:** keep the owner's own items as a separate list on the order at submit time.
+
+### 5.3 `PUT /reservations` does not create or close the group (P2)
+
+- **Where:** `Handlers/Reservation/EditReservationHandler.cs`.
+- **Problem:** a change of `guestCount` from 1 to 2 or more creates no group reservation. `GET /reservations/{id}/guest-session-id` then returns 404, and the owner modal shows its error state.
+- **Fix:** create or close the group reservation when the guest count crosses 2.
+
+### 5.4 `GroupBonusCalculator` clamps the deadline at `DateTime.MinValue` (P2)
+
+- **Where:** `Services/GroupReservations/GroupBonusCalculator.cs`.
+- **Problem:** the clamp exists only because 3 status tests use a default reservation start time.
+- **Fix:** give those tests a real start time and remove the clamp.
+
+### 5.5 No partial-subtraction test for `OwnerOwnItems` (P2)
+
+- **Where:** `Tests/Services/GroupPreOrderRulesTests.cs`.
+- **Problem:** no test covers an owner dish that a guest also ordered, where the rule takes away only part of the quantity.
+- **Fix:** add one test row.
 
 ## Suggested order
 

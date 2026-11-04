@@ -66,3 +66,43 @@ Priority:
 - **Where:** `backend/restaurant-backend-app/docs/ApiRoutes.md`.
 - **Problem:** the group status section now agrees with the code. Lines 1132 and 1147 use `/guest-sessions/...`, but the code uses `/guest/sessions/...`. The document shows the order `status` as a string, but the frontend `Order.status` is a number.
 - **Fix:** copy the paths, fields and types from the code into `ApiRoutes.md`.
+
+## 3. Group Pre-Order modal
+
+Recorded on 2026-11-04 during the Group Pre-Order modal task (task folder `.claude/work/2026-11-04-group-preorder-modal/`).
+
+### 3.1 The confirm dialog has no focus control (P2)
+
+- **Where:** `src/app/shared/custom-components/confirm-dialog/`.
+- **Problem:** the dialog does not move the focus into the dialog and does not keep the focus there. It has no `aria-describedby` for the message.
+- **Fix:** move the focus to the first button when the dialog opens, trap the focus, and set `aria-describedby` on the dialog.
+
+### 3.2 "Copy pre-order link" has one error path for two errors (P2)
+
+- **Where:** `group-pre-order-modal.component.ts` (`copyLink`).
+- **Problem:** the same handler catches a failed token request and a failed clipboard write. Two fast clicks reset the "Link copied" label too early.
+- **Fix:** give each error its own message. Cancel the old timer before a new copy starts.
+
+### 3.3 The modal stylesheet is over the style budget (P2)
+
+- **Where:** `group-pre-order-modal.component.scss` (5.52 kB, warning at 4 kB, error at 10 kB).
+- **Problem:** the build prints a style-budget warning for this file.
+- **Fix:** move the seats row and the participant row into child components with their own stylesheets.
+
+### 3.4 The modal has few tests for error paths (P2)
+
+- **Where:** `group-pre-order-modal.component.spec.ts`.
+- **Problem:** some paths have no tests: a clipboard failure, a submit error, Escape while a dialog is open, "−" at quantity 1. Also: the last own dish removed, and most bonus texts. The user asked for lean tests in this task.
+- **Fix:** add tests when one of these paths changes.
+
+### 3.5 Small logic in the modal template (P2)
+
+- **Where:** `group-pre-order-modal.component.html` (bonus icon choice, line price, guest initials).
+- **Problem:** the template calculates these values. `CLAUDE.md` §7 asks for no logic in templates.
+- **Fix:** compute them in the view helper (`group-pre-order.helpers.ts`).
+
+### 3.6 Owner edit drops dishes that no longer exist (P2)
+
+- **Where:** `group-pre-order-modal.component.ts` (owner edit), backend sessions snapshot.
+- **Problem:** the snapshot skips dishes that the dish table does not have. An owner edit sends the list without them, so the order loses them.
+- **Fix:** keep unknown dishes in the snapshot with a flag, or keep them in the edit request.
