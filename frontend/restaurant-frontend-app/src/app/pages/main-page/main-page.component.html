@@ -39,12 +39,20 @@
     } @else {
       <div class="dish-cards">
         @for (dish of dishes; track dish) {
-          <a
-            routerLink="/dish/{{ dish.id }}"
-            routerLinkActive="router-link-active"
+          <!--
+            div with role="button", not a native button: the card holds block content
+            (img, divs) and shares the .dish-card layout with the skeleton article.
+            Enter and Space are handled below.
+          -->
+          <div
             class="dish-card"
+            role="button"
+            tabindex="0"
+            (click)="openDish(dish)"
+            (keydown.enter)="openDish(dish)"
+            (keydown.space)="onDishSpace($event, dish)"
           >
-            <img [src]="dish.imageUrl" alt="{{ dish.name }}" class="dish-image" />
+            <img [src]="dish.imageUrl" alt="" class="dish-image" />
             <div class="dish-info">
               <div class="dish-name">{{ dish.name }}</div>
               <div class="dish-meta">
@@ -52,9 +60,13 @@
                 <span class="dish-weight">{{ dish.weight }}</span>
               </div>
             </div>
-          </a>
+          </div>
         }
       </div>
+    }
+
+    @if (selectedDish) {
+      <app-dish-modal [dish]="selectedDish" (closed)="closeDish()" />
     }
   </div>
 

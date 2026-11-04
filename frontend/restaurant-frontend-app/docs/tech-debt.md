@@ -202,3 +202,19 @@ Recorded on 2026-11-04 (task folder `.claude/work/2026-11-04-group-modal-ui/`).
 - **Where:** `group-pre-order-modal.component.ts` (`DialogView`, `BonusBox`, `OwnItem`).
 - **Problem:** `CLAUDE.md` asks for no interfaces in a component file. Only `BreakdownRow` is in `models.ts`.
 - **Fix:** move the three interfaces to `models.ts`.
+
+## 7. Dish cards and the menu filter
+
+Recorded on 2026-11-04 (task folder `.claude/work/2026-11-04-dishes-menu/`).
+
+### 7.1 The dish modal does not manage focus (P2)
+
+- **Where:** `app-dish-modal`, used by the main page (popular dishes) and the menu page.
+- **Problem:** when the modal opens, focus stays on the card behind it. When the modal closes, focus does not go back to the card. A keyboard user cannot easily reach the modal.
+- **Fix:** in the shared modal, move focus into the dialog on open and keep it there. On close, give focus back to the element that opened the modal. Add a test.
+
+### 7.2 The main page stylesheet is over the style budget (P2)
+
+- **Where:** `pages/main-page/main-page.component.scss` (5.36 kB on 2026-11-04, warning at 4 kB, error at 10 kB).
+- **Problem:** the build prints a style-budget warning for this file.
+- **Fix:** move the popular dishes section into a child component with its own stylesheet.

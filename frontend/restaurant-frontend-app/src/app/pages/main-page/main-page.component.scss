@@ -173,12 +173,21 @@
     flex-direction: column;
     align-items: center;
     padding: 1.5rem;
-    text-decoration: none;
     flex: 1 1 0;
     width: 0;
     gap: 1rem;
     min-width: 0;
     box-sizing: border-box;
+
+    // Pointer and focus styles only for real cards, not for the loading skeletons.
+    &:not(.skeleton-card) {
+      cursor: pointer;
+
+      &:focus-visible {
+        outline: 2px solid color.$green-800;
+        outline-offset: 2px;
+      }
+    }
 
     .dish-image {
       width: 100%;

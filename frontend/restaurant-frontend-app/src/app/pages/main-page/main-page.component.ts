@@ -21,6 +21,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs/operators';
 import { finalize } from 'rxjs';
 
+import { DishModalComponent } from '@app/components/dish-modal/dish-modal.component';
 import { LoginModalComponent } from '@app/auth/components/login/login-modal/login-modal.component';
 
 @Component({
@@ -34,12 +35,14 @@ import { LoginModalComponent } from '@app/auth/components/login/login-modal/logi
     LocationCardComponent,
     FeedbackWindowComponent,
     LoginModalComponent,
+    DishModalComponent,
   ],
   changeDetection: ChangeDetectionStrategy.Eager,
   providers: [LocationsService, DishesService, ReservationService, UsersService, FeedbacksService],
 })
 export class MainPageComponent implements OnInit {
   dishes: DishListResponse[] = [];
+  selectedDish: DishListResponse | null = null;
   locations: LocationResponse[] = [];
   isPopularDishesLoading = true;
   isLocationsLoading = true;
@@ -98,6 +101,20 @@ export class MainPageComponent implements OnInit {
         this.loadReservationForFeedback(reservationId);
       }
     });
+  }
+
+  openDish(dish: DishListResponse): void {
+    this.selectedDish = dish;
+  }
+
+  closeDish(): void {
+    this.selectedDish = null;
+  }
+
+  onDishSpace(event: Event, dish: DishListResponse): void {
+    // Stop the page from scrolling on Space.
+    event.preventDefault();
+    this.openDish(dish);
   }
 
   loadPopularDishes(): void {

@@ -31,8 +31,16 @@
     <div class="menu-section">
       <div class="filter-sort-bar">
         <div class="category-buttons">
+          <button
+            type="button"
+            (click)="onAllDishesSelected()"
+            [class.active]="selectedCategory === null"
+          >
+            All dishes
+          </button>
           @for (category of menuCategories; track category) {
             <button
+              type="button"
               (click)="onCategorySelected(category)"
               [class.active]="selectedCategory === category"
             >

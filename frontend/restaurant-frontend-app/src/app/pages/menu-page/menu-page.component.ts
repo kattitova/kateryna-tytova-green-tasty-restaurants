@@ -125,8 +125,16 @@ export class MenuPageComponent implements OnInit {
   }
 
   onCategorySelected(category: DishType): void {
-    this.selectedCategory = this.selectedCategory === category ? null : category;
+    this.selectedCategory = category;
+    this.navigateWithFilters();
+  }
 
+  onAllDishesSelected(): void {
+    this.selectedCategory = null;
+    this.navigateWithFilters();
+  }
+
+  private navigateWithFilters(): void {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
