@@ -44,7 +44,7 @@ public class GroupPreOrderService(
             throw new ValidationException($"No submitted guest sessions for group reservation '{groupReservationId}'.");
         }
 
-        IReadOnlyList<GroupPreOrderDishResponse> consolidated = Consolidate(submittedSessions);
+        IReadOnlyList<GroupPreOrderDishResponse> consolidated = GroupPreOrderRules.Consolidate(submittedSessions);
         if (consolidated.Count == 0)
         {
             throw new ValidationException("Submitted guest sessions contain no dishes.");
@@ -73,29 +73,6 @@ public class GroupPreOrderService(
             case GroupReservationStatus.Closed:
                 throw new GroupReservationExpiredException();
         }
-    }
-
-    // Sums quantities by dish id. The result keeps the order of first appearance:
-    // sessions in repository order, dishes in list order.
-    private static IReadOnlyList<GroupPreOrderDishResponse> Consolidate(IEnumerable<GuestSession> sessions)
-    {
-        var quantities = new Dictionary<string, int>(StringComparer.Ordinal);
-        var dishOrder = new List<string>();
-
-        foreach (OrderItem dish in sessions.SelectMany(s => s.Dishes ?? []))
-        {
-            if (quantities.TryGetValue(dish.DishId, out int quantity))
-            {
-                quantities[dish.DishId] = quantity + dish.Quantity;
-            }
-            else
-            {
-                quantities[dish.DishId] = dish.Quantity;
-                dishOrder.Add(dish.DishId);
-            }
-        }
-
-        return dishOrder.Select(id => new GroupPreOrderDishResponse(id, quantities[id])).ToList();
     }
 
     // D5: an active item (Pending or Confirmed) with the same dish gets the guest quantity added.
