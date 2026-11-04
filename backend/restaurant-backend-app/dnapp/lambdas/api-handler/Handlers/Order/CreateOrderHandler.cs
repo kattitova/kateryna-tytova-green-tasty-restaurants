@@ -156,7 +156,7 @@ public class CreateOrderHandler : IApiRequestHandler
         var location = await _locationService.GetLocationByTableIdAsync(reservation.TableId)
             ?? throw new ValidationException("Location not found for the reservation's table.");
 
-        var reservationTime = $"{reservation.StartTime:MMM dd, yyyy, h:mm tt} - {reservation.EndTime:h:mm tt}";
+        var reservationTime = OrderMapper.FormatReservationTime(reservation.StartTime, reservation.EndTime);
 
         return (createOrderRequest, reservation, location.Address, reservationTime);
     }

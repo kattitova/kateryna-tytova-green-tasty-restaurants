@@ -6,7 +6,9 @@ using APIHandler.Repositories.GroupReservations;
 using APIHandler.Repositories.GuestSessions;
 using APIHandler.Repositories.Orders;
 using APIHandler.Repositories.Reservations;
+using APIHandler.Mappers;
 using APIHandler.Services.GroupReservations;
+using APIHandler.Services.Locations;
 using Moq;
 
 namespace APIHandler.Tests.Services;
@@ -21,6 +23,7 @@ public class GroupPreOrderServiceTests
     private readonly Mock<IReservationRepository> _mockReservationRepository = new();
     private readonly Mock<IGuestSessionRepository> _mockGuestSessionRepository = new();
     private readonly Mock<IOrderRepository> _mockOrderRepository = new();
+    private readonly Mock<ILocationService> _mockLocationService = new();
     private readonly GroupPreOrderService _service;
 
     private Order? _submittedOrder;
@@ -31,7 +34,8 @@ public class GroupPreOrderServiceTests
             _mockGroupReservationRepository.Object,
             _mockReservationRepository.Object,
             _mockGuestSessionRepository.Object,
-            _mockOrderRepository.Object);
+            _mockOrderRepository.Object,
+            _mockLocationService.Object);
 
         _mockGroupReservationRepository
             .Setup(r => r.SubmitGroupPreOrderAsync(It.IsAny<string>(), It.IsAny<Order>()))
@@ -244,76 +248,103 @@ public class GroupPreOrderServiceTests
 
     // Session and dish checks (D4)
 
-    [Fact]
-    public async Task SubmitGroupPreOrderAsync_NoSessions_ThrowsValidationExceptionWithMessage()
+    [Theory]
+    [InlineData(false, null, false)]
+    [InlineData(true, OrderItemState.Canceled, false)]
+    [InlineData(true, null, true)]
+    public async Task SubmitGroupPreOrderAsync_NothingToSubmit_ThrowsValidationExceptionAndWritesNothing(
+        bool orderExists, OrderItemState? itemState, bool submittedGuestWithoutDishes)
     {
         ArrangeValidOwnerAndOpenGroup();
-        ArrangeSessions();
-        ArrangeOrder();
+        ArrangeSessions(submittedGuestWithoutDishes
+            ? [Session("guest-a", isSubmitted: true), Session("guest-b", isSubmitted: false, items: ("dish1", 2))]
+            : []);
+        if (orderExists)
+        {
+            ArrangeOrder(itemState is null ? [] : [Item("dish1", 2, itemState.Value)]);
+        }
 
         var exception = await Assert.ThrowsAsync<ValidationException>(() => Submit());
 
-        Assert.Equal("No submitted guest sessions for group reservation 'group-1'.", exception.Message);
+        Assert.Equal("Nothing to submit: the group has no pre-orders.", exception.Message);
         VerifyNoWrites();
     }
 
     [Fact]
-    public async Task SubmitGroupPreOrderAsync_OnlyUnsubmittedSessions_ThrowsValidationExceptionWithMessage()
+    public async Task SubmitGroupPreOrderAsync_OwnerOrderAndNoSubmittedGuests_SubmitsOwnerItemsAndReturnsEmptyList()
     {
         ArrangeValidOwnerAndOpenGroup();
-        ArrangeSessions(
-            Session("guest-a", isSubmitted: false, items: ("dish1", 2)),
-            Session("guest-b", isSubmitted: false, items: ("dish2", 1)));
-        ArrangeOrder();
+        ArrangeSessions(Session("guest-a", isSubmitted: false, items: ("dish3", 5)));
+        ArrangeOrder(Item("dish1", 2, OrderItemState.Confirmed), Item("dish2", 1, OrderItemState.Pending));
 
-        var exception = await Assert.ThrowsAsync<ValidationException>(() => Submit());
+        IReadOnlyList<GroupPreOrderDishResponse> result = await Submit();
 
-        Assert.Equal("No submitted guest sessions for group reservation 'group-1'.", exception.Message);
-        VerifyNoWrites();
+        Assert.Empty(result);
+        _mockGroupReservationRepository.Verify(r => r.SubmitGroupPreOrderAsync(It.IsAny<string>(), It.IsAny<Order>()), Times.Once);
+        Assert.NotNull(_submittedOrder);
+        Assert.Equal(OrderStatus.SubmittedByCustomer, _submittedOrder.Status);
+        Assert.Equal(2, _submittedOrder.Dishes.Count);
+        AssertItem(_submittedOrder.Dishes[0], "dish1", 2, OrderItemState.Confirmed);
+        AssertItem(_submittedOrder.Dishes[1], "dish2", 1, OrderItemState.Pending);
+        _mockLocationService.Verify(l => l.GetLocationByTableIdAsync(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
-    public async Task SubmitGroupPreOrderAsync_SubmittedSessionsWithoutDishes_ThrowsValidationExceptionWithMessage()
+    public async Task SubmitGroupPreOrderAsync_NoOrderAndSubmittedGuests_CreatesOrderWithConsolidatedDishes()
     {
-        ArrangeValidOwnerAndOpenGroup();
-        ArrangeSessions(
-            Session("guest-a", isSubmitted: true),
-            Session("guest-b", isSubmitted: true));
-        ArrangeOrder();
+        var start = new DateTime(2030, 1, 10, 12, 0, 0, DateTimeKind.Utc);
+        var end = start.AddHours(2);
+        ArrangeGroup();
+        _mockReservationRepository
+            .Setup(r => r.GetReservationByIdAsync(ReservationId))
+            .ReturnsAsync(new Reservation
+            {
+                Id = ReservationId,
+                TableId = "table-1",
+                WaiterId = "waiter-1",
+                CustomerId = UserId,
+                StartTime = start,
+                EndTime = end
+            });
+        _mockLocationService
+            .Setup(l => l.GetLocationByTableIdAsync("table-1"))
+            .ReturnsAsync(new Location { Id = "loc-1", Address = "48 Rustaveli Avenue", Description = "d", AverageOccupancy = "Low" });
+        ArrangeTaskExampleSessions();
+        _mockOrderRepository
+            .Setup(r => r.GetOrderByReservationIdAsync(ReservationId))
+            .ReturnsAsync((Order?)null);
 
-        var exception = await Assert.ThrowsAsync<ValidationException>(() => Submit());
+        IReadOnlyList<GroupPreOrderDishResponse> result = await Submit();
 
-        Assert.Equal("Submitted guest sessions contain no dishes.", exception.Message);
-        VerifyNoWrites();
+        Assert.Equal([new("dish1", 3), new("dish2", 2)], result);
+        _mockGroupReservationRepository.Verify(r => r.SubmitGroupPreOrderAsync(GroupId, It.IsAny<Order>()), Times.Once);
+        Assert.NotNull(_submittedOrder);
+        Assert.False(string.IsNullOrWhiteSpace(_submittedOrder.OrderId));
+        Assert.Equal(UserId, _submittedOrder.CustomerId);
+        Assert.Equal(ReservationId, _submittedOrder.ReservationId);
+        Assert.Equal("48 Rustaveli Avenue", _submittedOrder.ReservationAddress);
+        Assert.Equal(OrderMapper.FormatReservationTime(start, end), _submittedOrder.ReservationTime);
+        Assert.Equal(OrderStatus.SubmittedByCustomer, _submittedOrder.Status);
+        Assert.Equal(2, _submittedOrder.Dishes.Count);
+        AssertItem(_submittedOrder.Dishes[0], "dish1", 3, OrderItemState.Pending);
+        AssertItem(_submittedOrder.Dishes[1], "dish2", 2, OrderItemState.Pending);
     }
 
     [Fact]
-    public async Task SubmitGroupPreOrderAsync_DishesOnlyInUnsubmittedSessions_ThrowsValidationExceptionWithMessage()
-    {
-        ArrangeValidOwnerAndOpenGroup();
-        ArrangeSessions(
-            Session("guest-a", isSubmitted: true),
-            Session("guest-b", isSubmitted: false, items: ("dish1", 2)));
-        ArrangeOrder();
-
-        var exception = await Assert.ThrowsAsync<ValidationException>(() => Submit());
-
-        Assert.Equal("Submitted guest sessions contain no dishes.", exception.Message);
-        VerifyNoWrites();
-    }
-
-    [Fact]
-    public async Task SubmitGroupPreOrderAsync_OrderNotFound_ThrowsValidationExceptionWithMessage()
+    public async Task SubmitGroupPreOrderAsync_NoOrderAndLocationMissing_ThrowsValidationExceptionBeforeTransaction()
     {
         ArrangeValidOwnerAndOpenGroup();
         ArrangeTaskExampleSessions();
         _mockOrderRepository
             .Setup(r => r.GetOrderByReservationIdAsync(ReservationId))
             .ReturnsAsync((Order?)null);
+        _mockLocationService
+            .Setup(l => l.GetLocationByTableIdAsync(It.IsAny<string>()))
+            .ReturnsAsync((Location)null!);
 
         var exception = await Assert.ThrowsAsync<ValidationException>(() => Submit());
 
-        Assert.Equal("Active pre-order for reservation 'reservation-1' not found.", exception.Message);
+        Assert.Equal("Location not found for the reservation's table.", exception.Message);
         VerifyNoWrites();
     }
 

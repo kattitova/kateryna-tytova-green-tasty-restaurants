@@ -40,4 +40,7 @@ public static class OrderMapper
             Status = OrderStatus.Created
         };
     }
+
+    public static string FormatReservationTime(DateTime start, DateTime end) =>
+        $"{start:MMM dd, yyyy, h:mm tt} - {end:h:mm tt}";
 }

@@ -1,11 +1,13 @@
 using APIHandler.Constants.Orders;
 using APIHandler.Entities;
 using APIHandler.Exceptions;
+using APIHandler.Mappers;
 using APIHandler.Models.GroupReservation;
 using APIHandler.Repositories.GroupReservations;
 using APIHandler.Repositories.GuestSessions;
 using APIHandler.Repositories.Orders;
 using APIHandler.Repositories.Reservations;
+using APIHandler.Services.Locations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +19,8 @@ public class GroupPreOrderService(
     IGroupReservationRepository groupReservationRepository,
     IReservationRepository reservationRepository,
     IGuestSessionRepository guestSessionRepository,
-    IOrderRepository orderRepository) : IGroupPreOrderService
+    IOrderRepository orderRepository,
+    ILocationService locationService) : IGroupPreOrderService
 {
     public async Task<IReadOnlyList<GroupPreOrderDishResponse>> SubmitGroupPreOrderAsync(string userId, string groupReservationId, string reservationId)
     {
@@ -38,30 +41,57 @@ public class GroupPreOrderService(
         EnsureGroupIsOpen(group.Status);
 
         List<GuestSession> sessions = await guestSessionRepository.GetAllByGroupReservationIdAsync(groupReservationId);
-        List<GuestSession> submittedSessions = sessions.Where(s => s.IsSubmitted).ToList();
-        if (submittedSessions.Count == 0)
+        IReadOnlyList<GroupPreOrderDishResponse> guestDishes =
+            GroupPreOrderRules.Consolidate(sessions.Where(s => s.IsSubmitted));
+
+        Order? order = await orderRepository.GetOrderByReservationIdAsync(reservationId);
+        bool ownerHasItems = GroupPreOrderRules.OwnerOwnItems(order, sessions, group.Status).Count > 0;
+
+        if (guestDishes.Count == 0 && !ownerHasItems)
         {
-            throw new ValidationException($"No submitted guest sessions for group reservation '{groupReservationId}'.");
+            throw new ValidationException("Nothing to submit: the group has no pre-orders.");
         }
 
-        IReadOnlyList<GroupPreOrderDishResponse> consolidated = GroupPreOrderRules.Consolidate(submittedSessions);
-        if (consolidated.Count == 0)
+        if (order is null)
         {
-            throw new ValidationException("Submitted guest sessions contain no dishes.");
+            order = await CreateOwnerOrderAsync(userId, reservation, guestDishes);
         }
-
-        Order order = await orderRepository.GetOrderByReservationIdAsync(reservationId)
-            ?? throw new ValidationException($"Active pre-order for reservation '{reservationId}' not found.");
-
-        order.Dishes = MergeIntoOrderItems(order.Dishes ?? [], consolidated);
-        order.Status = OrderStatus.SubmittedByCustomer;
+        else
+        {
+            // The owner's items are already in the order; only the guest dishes are merged.
+            order.Dishes = MergeIntoOrderItems(order.Dishes ?? [], guestDishes);
+            order.Status = OrderStatus.SubmittedByCustomer;
+        }
 
         if (!await groupReservationRepository.SubmitGroupPreOrderAsync(groupReservationId, order))
         {
             throw new GroupReservationSubmittedException();
         }
 
-        return consolidated;
+        return guestDishes;
+    }
+
+    private async Task<Order> CreateOwnerOrderAsync(
+        string userId,
+        Reservation reservation,
+        IReadOnlyList<GroupPreOrderDishResponse> guestDishes)
+    {
+        Location location = await locationService.GetLocationByTableIdAsync(reservation.TableId)
+            ?? throw new ValidationException("Location not found for the reservation's table.");
+
+        return new Order
+        {
+            OrderId = Guid.NewGuid().ToString(),
+            CustomerId = userId,
+            ReservationId = reservation.Id,
+            ReservationAddress = location.Address,
+            ReservationTime = OrderMapper.FormatReservationTime(reservation.StartTime, reservation.EndTime),
+            Dishes = guestDishes
+                .Select(d => new OrderItem { DishId = d.DishId, Quantity = d.Quantity, State = OrderItemState.Pending })
+                .ToList(),
+            Status = OrderStatus.SubmittedByCustomer,
+            CreatedAt = DateTime.UtcNow
+        };
     }
 
     private static void EnsureGroupIsOpen(GroupReservationStatus status)
