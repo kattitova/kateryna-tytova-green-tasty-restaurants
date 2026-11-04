@@ -137,37 +137,83 @@
 
           @if (owner(); as me) {
             <section class="card row">
-              <button
-                type="button"
-                class="row-main"
-                [attr.aria-expanded]="ownerExpanded()"
-                [disabled]="!v.ownerOrdered"
-                (click)="toggleOwner()"
-              >
-                <span class="avatar avatar--owner" [class.avatar--empty]="!v.ownerOrdered">
-                  {{ ownerInitials() }}
-                </span>
-                <span class="row-text">
-                  <span class="row-name">My Pre-Order</span>
-                  <span class="row-sub">
-                    {{ v.ownerOrdered ? itemsSummary(me) : "You haven't added your dishes yet" }}
+              @if (v.ownerOrdered) {
+                <button
+                  type="button"
+                  class="row-main"
+                  [attr.aria-expanded]="ownerExpanded()"
+                  (click)="toggleOwner()"
+                >
+                  <span class="avatar avatar--owner">{{ ownerInitials() }}</span>
+                  <span class="row-text">
+                    <span class="row-name">My Pre-Order</span>
+                    <span class="row-sub">{{ itemsSummary(me) }}</span>
                   </span>
-                </span>
-                @if (v.ownerOrdered) {
                   <span class="row-price">{{ v.ownerSubtotal | currency }}</span>
                   <span class="chevron" [class.chevron--open]="ownerExpanded()" aria-hidden="true"></span>
-                }
-              </button>
+                </button>
 
-              @if (ownerExpanded() && v.ownerOrdered) {
-                <ul class="dish-list">
-                  @for (item of me.items; track item.dish.id) {
-                    <li>
-                      <span>{{ item.dish.name }} &times; {{ item.quantity }}</span>
-                      <span>{{ item.dish.price * item.quantity | currency }}</span>
-                    </li>
+                @if (ownerExpanded()) {
+                  <ul class="dish-list">
+                    @for (item of me.items; track item.dish.id) {
+                      @if (v.isOpen) {
+                        <li class="dish-edit">
+                          @if (item.dish.imageUrl) {
+                            <img class="dish-image" [src]="item.dish.imageUrl" alt="" aria-hidden="true" />
+                          }
+                          <span class="dish-name">{{ item.dish.name }}</span>
+                          <span class="stepper">
+                            <button
+                              type="button"
+                              class="step"
+                              [attr.aria-label]="'Decrease ' + item.dish.name"
+                              [disabled]="item.quantity <= 1 || editing()"
+                              (click)="changeQuantity(item.dish.id, -1)"
+                            >
+                              &minus;
+                            </button>
+                            <span class="quantity">{{ item.quantity }}</span>
+                            <button
+                              type="button"
+                              class="step"
+                              [attr.aria-label]="'Increase ' + item.dish.name"
+                              [disabled]="editing()"
+                              (click)="changeQuantity(item.dish.id, 1)"
+                            >
+                              +
+                            </button>
+                          </span>
+                          <span class="dish-price">{{ item.dish.price * item.quantity | currency }}</span>
+                          <button
+                            type="button"
+                            class="icon-button icon-button--small"
+                            [attr.aria-label]="'Remove ' + item.dish.name"
+                            [disabled]="editing()"
+                            (click)="removeOwnDish(item.dish.id)"
+                          >
+                            <img src="assets/svg/trash.svg" alt="" aria-hidden="true" width="24" height="24" />
+                          </button>
+                        </li>
+                      } @else {
+                        <li>
+                          <span>{{ item.dish.name }} &times; {{ item.quantity }}</span>
+                          <span>{{ item.dish.price * item.quantity | currency }}</span>
+                        </li>
+                      }
+                    }
+                  </ul>
+                }
+              } @else {
+                <div class="row-main row-main--static">
+                  <span class="avatar avatar--owner avatar--empty">{{ ownerInitials() }}</span>
+                  <span class="row-text">
+                    <span class="row-name">My Pre-Order</span>
+                    <span class="row-sub">You haven't added your dishes yet</span>
+                  </span>
+                  @if (v.isOpen) {
+                    <button type="button" class="add-dishes" (click)="addMyDishes()">+ Add my dishes</button>
                   }
-                </ul>
+                </div>
               }
             </section>
           }

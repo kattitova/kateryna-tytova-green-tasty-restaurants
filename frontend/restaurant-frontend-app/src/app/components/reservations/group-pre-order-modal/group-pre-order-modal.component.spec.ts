@@ -1,8 +1,12 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
+
+import { CartStateService } from '@app/services/cart/cart-state.service';
+import { PreOrdersService } from '@app/services/pre-orders/pre-orders.service';
+import { buildPreOrderQueryParams } from '@app/shared/helpers/pre-order-navigation';
 
 import { GroupBonus } from '@app/models/group-orders/group-bonus.model';
 import { GroupSessionsResponse } from '@app/models/group-orders/group-sessions-response.model';
@@ -46,6 +50,8 @@ describe('GroupPreOrderModalComponent', () => {
   let fixture: ComponentFixture<GroupPreOrderModalComponent>;
   let groupOrders: jasmine.SpyObj<GroupOrdersService>;
   let guestInvite: jasmine.SpyObj<GuestInviteService>;
+  let preOrders: jasmine.SpyObj<PreOrdersService>;
+  let cartState: jasmine.SpyObj<CartStateService>;
 
   async function render(
     ownerGroupId$: Observable<string>,
@@ -76,6 +82,9 @@ describe('GroupPreOrderModalComponent', () => {
 
     guestInvite = jasmine.createSpyObj<GuestInviteService>('GuestInviteService', ['getInviteToken$']);
 
+    preOrders = jasmine.createSpyObj<PreOrdersService>('PreOrdersService', ['editPreOrderByReservationId']);
+    cartState = jasmine.createSpyObj<CartStateService>('CartStateService', ['refresh']);
+
     TestBed.configureTestingModule({
       imports: [GroupPreOrderModalComponent],
       providers: [
@@ -85,6 +94,8 @@ describe('GroupPreOrderModalComponent', () => {
         { provide: API_BASE_URL, useValue: 'https://test.api' },
         { provide: GroupOrdersService, useValue: groupOrders },
         { provide: GuestInviteService, useValue: guestInvite },
+        { provide: PreOrdersService, useValue: preOrders },
+        { provide: CartStateService, useValue: cartState },
       ],
     });
   });
@@ -210,6 +221,65 @@ describe('GroupPreOrderModalComponent', () => {
 
       const submit = buttons(root).find((b) => b.textContent?.trim() === 'Submit Pre-Order');
       expect(submit?.disabled).toBeTrue();
+    });
+  });
+
+  describe('owner dishes', () => {
+    const SALAD = { id: 'dishA', name: 'Caesar Salad', price: 10 };
+    const SOUP = { id: 'dishB', name: 'Tom Yum', price: 20 };
+
+    function ownerWithDishes(): GroupSessionsResponse {
+      return {
+        ...SESSIONS,
+        owner: {
+          ...SESSIONS.owner,
+          items: [
+            { dish: SALAD, quantity: 2 },
+            { dish: SOUP, quantity: 1 },
+          ],
+          total: 40,
+        },
+      };
+    }
+
+    function button(root: HTMLElement, predicate: (b: HTMLButtonElement) => boolean): HTMLButtonElement | undefined {
+      return Array.from(root.querySelectorAll('button')).find(predicate);
+    }
+
+    it('increases the quantity of one dish, keeps the others and reloads', async () => {
+      preOrders.editPreOrderByReservationId.and.returnValue(of({}) as never);
+      const root = await render(of('g1'), status('Open'), ownerWithDishes());
+
+      button(root, (b) => b.textContent?.includes('My Pre-Order') ?? false)!.click();
+      fixture.detectChanges();
+      button(root, (b) => b.getAttribute('aria-label') === 'Increase Caesar Salad')!.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(preOrders.editPreOrderByReservationId).toHaveBeenCalledOnceWith('r1', {
+        orderItems: [
+          jasmine.objectContaining({ dish: jasmine.objectContaining({ id: 'dishA' }), quantity: 3 }),
+          jasmine.objectContaining({ dish: jasmine.objectContaining({ id: 'dishB' }), quantity: 1 }),
+        ],
+      });
+      expect(groupOrders.getSessions$).toHaveBeenCalledTimes(2);
+    });
+
+    it('opens the menu in pre-order mode and closes the modal from "Add my dishes"', async () => {
+      const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+      const emptyOwner: GroupSessionsResponse = {
+        ...SESSIONS,
+        owner: { ...SESSIONS.owner, items: [], total: 0, isSubmitted: false },
+      };
+      const root = await render(of('g1'), { ...status('Open'), orderedCount: 2 }, emptyOwner);
+      const closed: { changed: boolean }[] = [];
+      fixture.componentInstance.closed.subscribe((event) => closed.push(event));
+
+      button(root, (b) => b.textContent?.includes('Add my dishes') ?? false)!.click();
+      fixture.detectChanges();
+
+      expect(navigate).toHaveBeenCalledWith(['/menu'], { queryParams: buildPreOrderQueryParams(RESERVATION) });
+      expect(closed).toEqual([{ changed: false }]);
     });
   });
 });

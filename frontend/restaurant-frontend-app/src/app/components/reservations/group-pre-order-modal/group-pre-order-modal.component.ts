@@ -15,6 +15,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
 import { forkJoin, from, switchMap, tap, timer } from 'rxjs';
 
 import { GroupPreOrderView } from '@app/models/group-orders/group-pre-order-view.model';
@@ -22,18 +23,26 @@ import { GroupSessionsResponse } from '@app/models/group-orders/group-sessions-r
 import { Participant } from '@app/models/group-orders/participant.model';
 import { ReservationCustomer } from '@app/models/reservations/reservation.model';
 import { GroupOrdersService } from '@app/services/group-orders/group-orders.service';
+import { CartStateService } from '@app/services/cart/cart-state.service';
+import { PreOrdersService } from '@app/services/pre-orders/pre-orders.service';
 import { GuestInviteService } from '@app/services/reservation/guest-invite.service';
 import { ToastService } from '@app/services/toast/toast.service';
 import { LoadingSpinnerComponent } from '@app/shared/custom-components/loading-spinner/loading-spinner.component';
 import { ModalComponent } from '@app/shared/custom-components/modal/modal.component';
 import { buildGroupPreOrderView, formatTimeLeft } from '@app/shared/helpers/group-pre-order.helpers';
 import { buildInviteLink } from '@app/shared/helpers/invite-link';
+import { buildPreOrderQueryParams } from '@app/shared/helpers/pre-order-navigation';
 import { ConfirmDialogComponent } from '@app/shared/custom-components/confirm-dialog/confirm-dialog.component';
 
 type LoadState = 'loading' | 'error' | 'content';
 type BonusTone = 'progress' | 'success' | 'muted';
 
 type DialogState = { kind: 'remove'; participantId: string; name: string } | { kind: 'submit' };
+
+interface OwnItem {
+  dish: { id: string };
+  quantity: number;
+}
 
 interface DialogView {
   title: string;
@@ -72,6 +81,9 @@ export class GroupPreOrderModalComponent implements OnInit {
   private readonly ngZone = inject(NgZone);
   private readonly guestInvite = inject(GuestInviteService);
   private readonly toast = inject(ToastService);
+  private readonly router = inject(Router);
+  private readonly preOrders = inject(PreOrdersService);
+  private readonly cartState = inject(CartStateService);
 
   readonly reservation = input.required<ReservationCustomer>();
   readonly ownerName = input('');
@@ -88,6 +100,7 @@ export class GroupPreOrderModalComponent implements OnInit {
   protected readonly dialog = signal<DialogState | null>(null);
   protected readonly linkCopied = signal(false);
   protected readonly submitting = signal(false);
+  protected readonly editing = signal(false);
 
   protected readonly dialogView = computed<DialogView | null>(() => {
     const dialog = this.dialog();
@@ -158,6 +171,23 @@ export class GroupPreOrderModalComponent implements OnInit {
         next: () => this.showLinkCopied(),
         error: () => this.toast.error('Could not copy the link. Please try again.'),
       });
+  }
+
+  protected changeQuantity(dishId: string, delta: 1 | -1): void {
+    this.saveOwnItems(
+      this.ownItems().map((item) =>
+        item.dish.id === dishId ? { ...item, quantity: item.quantity + delta } : item,
+      ),
+    );
+  }
+
+  protected removeOwnDish(dishId: string): void {
+    this.saveOwnItems(this.ownItems().filter((item) => item.dish.id !== dishId));
+  }
+
+  protected addMyDishes(): void {
+    this.closed.emit({ changed: this.changed() });
+    void this.router.navigate(['/menu'], { queryParams: buildPreOrderQueryParams(this.reservation()) });
   }
 
   protected askRemoveGuest(participantId: string): void {
@@ -248,6 +278,34 @@ export class GroupPreOrderModalComponent implements OnInit {
 
   protected pluralPreOrders(count: number): string {
     return count === 1 ? 'pre-order' : 'pre-orders';
+  }
+
+  private ownItems(): OwnItem[] {
+    return (this.sessions()?.owner.items ?? []).map((item) => ({
+      dish: { id: item.dish.id },
+      quantity: item.quantity,
+    }));
+  }
+
+  /** An empty list cancels the order, as on the reservations page. */
+  private saveOwnItems(orderItems: OwnItem[]): void {
+    if (this.editing()) {
+      return;
+    }
+
+    this.editing.set(true);
+    this.preOrders
+      .editPreOrderByReservationId(this.reservation().id, { orderItems })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.editing.set(false);
+          this.changed.set(true);
+          this.cartState.refresh();
+          this.reload();
+        },
+        error: () => this.editing.set(false),
+      });
   }
 
   private showLinkCopied(): void {

@@ -454,3 +454,63 @@
 .dish-list-action {
   justify-content: flex-end;
 }
+
+.row-main--static {
+  cursor: default;
+}
+
+.add-dishes {
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: color.$green-600;
+  background: color.$neutral-0;
+  border: 1.4px solid color.$green-600;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dish-edit {
+  gap: 16px;
+  align-items: center;
+}
+
+.dish-image {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.dish-name {
+  flex: 1;
+}
+
+.stepper {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.step {
+  width: 28px;
+  height: 28px;
+  font: inherit;
+  color: color.$green-600;
+  background: color.$neutral-0;
+  border: 1px solid color.$neutral-200;
+  border-radius: 6px;
+  cursor: pointer;
+
+  &:disabled {
+    color: color.$neutral-400;
+    cursor: not-allowed;
+  }
+}
+
+.dish-price {
+  min-width: 56px;
+  text-align: right;
+}
