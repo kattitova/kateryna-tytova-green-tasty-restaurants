@@ -31,6 +31,17 @@
         >
           {{ statusView().label }}
         </span>
+
+        @if (canCancelAsCustomer()) {
+          <button
+            type="button"
+            class="icon-button icon-button--small cancel-icon"
+            aria-label="Cancel reservation"
+            (click)="cancelReservation.emit(r().id)"
+          >
+            <img src="assets/svg/trash.svg" alt="" aria-hidden="true" width="24" height="24" />
+          </button>
+        }
       }
     </div>
 
@@ -125,18 +136,20 @@
   <div class="actions">
     @switch (r().status) {
       @case (ReservationStatusCustomer.Reserved) {
-        <button
-          type="button"
-          class="button button--tertiary button--large"
-          (click)="cancelReservation.emit(r().id)"
-        >
-          Cancel
-        </button>
+        @if (role() === Roles.WAITER) {
+          <button
+            type="button"
+            class="button button--tertiary button--large"
+            (click)="cancelReservation.emit(r().id)"
+          >
+            Cancel
+          </button>
+        }
 
         @if (role() === Roles.CUSTOMER) {
           <button
             type="button"
-            class="button button--secondary button--large"
+            class="button button--secondary button--small"
             (click)="editReservation.emit(r())"
           >
             Edit
@@ -164,22 +177,34 @@
         } @else if (role() === Roles.CUSTOMER) {
           <button
             type="button"
-            class="button button--primary button--large"
+            class="button button--primary button--small"
             (click)="onPreOrder()"
           >
             Pre-order
           </button>
+
+          @if (isGroup()) {
+            <button
+              type="button"
+              class="button button--secondary button--small"
+              (click)="groupPreOrder.emit(r())"
+            >
+              Group Pre-Order
+            </button>
+          }
         }
       }
 
       @case (ReservationStatusCustomer.InProgress) {
-        <button
-          type="button"
-          class="button button--tertiary button--large"
-          (click)="cancelReservation.emit(r().id)"
-        >
-          Cancel
-        </button>
+        @if (role() === Roles.WAITER) {
+          <button
+            type="button"
+            class="button button--tertiary button--large"
+            (click)="cancelReservation.emit(r().id)"
+          >
+            Cancel
+          </button>
+        }
 
         @if (
           role() === Roles.WAITER &&
@@ -206,7 +231,7 @@
         ) {
         <button
           type="button"
-          class="button button--secondary button--large"
+          class="button button--secondary button--small"
           (click)="leaveFeedbackReservation.emit(r())"
         >
           Leave Feedback
@@ -222,7 +247,7 @@
         ) {
         <button
           type="button"
-          class="button button--secondary button--large"
+          class="button button--secondary button--small"
           (click)="updateFeedbackReservation.emit(r())"
         >
           Update Feedback

@@ -17,6 +17,7 @@ import {
 } from '@app/models/reservations/reservation.model';
 import { PlaceOrderWaiterComponent } from '@app/components/place-order-waiter/place-order-waiter.component';
 import { Roles } from '@app/shared/constants/roles';
+import { isGroupReservation } from '@app/shared/helpers/group-reservation.helpers';
 import { buildPreOrderQueryParams } from '@app/shared/helpers/pre-order-navigation';
 import { CustomSelectComponent } from '@app/shared/custom-components/custom-select/custom-select.component';
 
@@ -93,6 +94,7 @@ export class CardReservationComponent {
   }>();
 
   readonly preOrder = output<CreateOrderRequest>();
+  readonly groupPreOrder = output<ReservationCustomer>();
   readonly showWaiterOrderModal = signal(false);
 
   readonly statusView = computed<ReservationStatusView>(() => {
@@ -134,6 +136,16 @@ export class CardReservationComponent {
     return (
       this.preOrderItemCount() > 0 ||
       this.creatorRole() === Roles.WAITER
+    );
+  });
+
+  readonly isGroup = computed(() => isGroupReservation(this.r().guestCount));
+
+  readonly canCancelAsCustomer = computed(() => {
+    const status = this.r().status;
+    return (
+      status === ReservationStatusCustomer.Reserved ||
+      status === ReservationStatusCustomer.InProgress
     );
   });
 

@@ -36,4 +36,51 @@ describe('CardReservationComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  function setReservation(overrides: Partial<ReservationCustomer>): HTMLElement {
+    const reservation = { ...RESERVATION, ...overrides };
+    fixture.componentRef.setInput('r', reservation);
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  function findButton(root: HTMLElement, text: string): HTMLButtonElement | undefined {
+    return Array.from(root.querySelectorAll('button')).find((b) => b.textContent?.trim() === text);
+  }
+
+  it('shows "Group Pre-Order" on a reserved group card and emits groupPreOrder on click', () => {
+    const root = setReservation({ guestCount: 4 });
+    const emitted: ReservationCustomer[] = [];
+    component.groupPreOrder.subscribe((r) => emitted.push(r));
+
+    const button = findButton(root, 'Group Pre-Order');
+    expect(button).toBeDefined();
+    button!.click();
+
+    expect(emitted).toEqual([{ ...RESERVATION, guestCount: 4 }]);
+  });
+
+  it('shows no "Group Pre-Order" button for a single guest', () => {
+    const root = setReservation({ guestCount: 1 });
+
+    expect(findButton(root, 'Group Pre-Order')).toBeUndefined();
+  });
+
+  it('shows no "Group Pre-Order" button when the reservation is in progress', () => {
+    const root = setReservation({ guestCount: 4, status: ReservationStatusCustomer.InProgress });
+
+    expect(findButton(root, 'Group Pre-Order')).toBeUndefined();
+  });
+
+  it('emits cancelReservation with the id from the "Cancel reservation" icon button', () => {
+    const root = setReservation({ guestCount: 4 });
+    const emitted: string[] = [];
+    component.cancelReservation.subscribe((id) => emitted.push(id));
+
+    const button = root.querySelector<HTMLButtonElement>('button[aria-label="Cancel reservation"]');
+    expect(button).not.toBeNull();
+    button!.click();
+
+    expect(emitted).toEqual(['res-1']);
+  });
 });
