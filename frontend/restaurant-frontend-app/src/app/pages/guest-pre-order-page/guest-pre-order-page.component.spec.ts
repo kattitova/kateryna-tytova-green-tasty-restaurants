@@ -1,5 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
@@ -12,6 +12,7 @@ import { GuestCartItem, GuestPreorderStore } from './state/guest-preorder.store'
 describe('GuestPreOrderPageComponent', () => {
   let fixture: ComponentFixture<GuestPreOrderPageComponent>;
   let store: GuestPreorderStore;
+  let httpMock: HttpTestingController;
 
   const salad: GuestCartItem = { dishId: 'dish-1', title: 'Green Salad', price: 12, qty: 1 };
 
@@ -37,8 +38,11 @@ describe('GuestPreOrderPageComponent', () => {
     }).compileComponents();
 
     store = TestBed.inject(GuestPreorderStore);
+    httpMock = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(GuestPreOrderPageComponent);
   });
+
+  afterEach(() => httpMock.verify());
 
   it('shows no cart indicator when the guest cart is empty', () => {
     render([]);
@@ -59,5 +63,33 @@ describe('GuestPreOrderPageComponent', () => {
 
     expect(cartButton()?.querySelector('.cart-indicator')).toBeNull();
     expect(cartButton()?.getAttribute('aria-label')).toBe('Open cart');
+  });
+
+  describe('when the pre-order is submitted', () => {
+    const root = (): HTMLElement => fixture.nativeElement as HTMLElement;
+
+    beforeEach(() => {
+      store.cartItems.set([salad]);
+      store.status.set('submitted');
+      fixture.detectChanges();
+    });
+
+    it('renders the submitted screen and no cart button', () => {
+      expect(root().querySelector('app-guest-preorder-submitted')).not.toBeNull();
+      expect(cartButton()).toBeNull();
+    });
+
+    it('shows the final-order note and no Create New Pre-Order text', () => {
+      const content = (root().textContent ?? '').replace(/\s+/g, ' ');
+
+      expect(content).toContain('Your pre-order is final. To change it, contact the reservation owner.');
+      expect(content.toLowerCase()).not.toContain('create new pre-order');
+    });
+
+    it('sends no POST /guest/sessions request', () => {
+      httpMock.expectNone(
+        (req) => req.method === 'POST' && req.url.endsWith('/guest/sessions'),
+      );
+    });
   });
 });

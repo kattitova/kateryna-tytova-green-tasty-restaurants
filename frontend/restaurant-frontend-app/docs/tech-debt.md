@@ -140,3 +140,43 @@ Recorded on 2026-11-04 (task folder `.claude/work/2026-11-04-group-bonus-and-edi
 - **Where:** `npm test -- --watch=false --browsers=ChromeHeadless`.
 - **Problem:** one run printed "Executed 430 of 430" and then "DISCONNECTED (no message in 30000 ms)", with an HTTP request stack trace. The next runs passed (435 of 435).
 - **Fix:** if it occurs again, find the spec that leaves an open request, or increase `browserNoActivityTimeout`.
+
+## 5. Guest pre-order flow
+
+Recorded on 2026-11-04 (task folder `.claude/work/2026-11-04-guest-resubmit-seat/`).
+
+### 5.1 A reload after submit takes a new seat (P2)
+
+- **Where:** `pages/guest-pre-order-page/state/guest-preorder.store.ts` (`clearStorage`, `join`), backend `GuestSessionService.CreateGuestSessionAsync`.
+- **Problem:** after a submit, the store removes the guest name but keeps the session id and token. A reload shows the name modal again, and `join()` makes a second session with the same name. Duplicate submitted sessions also increase the ordered count, so the group bonus can show as achieved.
+- **Fix:** on load, read the stored session with `GET /guest/sessions/{id}` and show the submitted screen if `isSubmitted` is true. As a second guard, the backend can reject a second session with the same name in the group.
+
+### 5.2 The store does not reset `status` for a new invite (P2)
+
+- **Where:** `guest-preorder.store.ts` (`initContext`).
+- **Problem:** Angular provides the store in root. If a guest opens a second invite in the same tab after a submit, the old submitted screen shows.
+- **Fix:** reset `status` and the cart in `initContext` when the invite token changes.
+
+### 5.3 A joined guest of a full group gets a general error on reload (P2)
+
+- **Where:** `guest-preorder.store.ts` (invite load error handling).
+- **Problem:** `GET /guest/invites/{token}` returns 400 `GuestLimitExceeded` when the group is full. The store maps only 404 and 410 to `expired`, so the guest sees "We couldn't load the invitation".
+- **Fix:** show a clear message for 400 `GuestLimitExceeded`, or let a guest with a stored session skip the invite request.
+
+### 5.4 The guest store writes the guest name to the console (P2)
+
+- **Where:** `guest-preorder.store.ts` (`console.log` of the join payload and of errors).
+- **Problem:** personal data goes to the browser console.
+- **Fix:** remove the `console.log` lines.
+
+### 5.5 `ReservationsPageComponent` specs fail late in the day (P2)
+
+- **Where:** `components/tables/tables/tables.component.spec.ts` (line 66 and the "loading state" specs).
+- **Problem:** the specs use the real clock. At 21:16 local time, 7 specs failed in 2 runs. The error was "Expected 0 to be greater than 0" for the time options of the first available date. Earlier in the day they pass.
+- **Fix:** set a fixed clock in the specs (`jasmine.clock().mockDate`). Also make sure that the component moves to the next day when today has no free time slots.
+
+### 5.6 `CLAUDE.md` §5 has old wording (P2)
+
+- **Where:** `frontend/restaurant-frontend-app/CLAUDE.md` §5.
+- **Problem:** the text about `@app/` paths and `Eager` does not agree with the code.
+- **Fix:** update the text to agree with the code.

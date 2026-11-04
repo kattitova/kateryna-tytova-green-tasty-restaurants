@@ -129,6 +129,13 @@ h3 {
     font-weight: 600;
 }
 
+.submitted-note {
+    margin: 0;
+    color: color.$neutral-600;
+    font-size: 14px;
+    line-height: 24px;
+}
+
 @media (max-width: 480px) {
     .page {
         min-height: calc(100vh - 58px);

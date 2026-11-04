@@ -229,6 +229,22 @@ Recorded on 2026-11-04 (task folder `.claude/work/2026-11-04-group-bonus-and-edi
 - **Problem:** `Enum.TryParse` after the name check is not necessary. No test reads a stored `S = "TenPercentDiscount"` through the SDK. The "latest-first" guest order in a `Progress` test has no effect, because the code uses `Max()`.
 - **Fix:** use `Enum.Parse`. Add the read test. Remove or change the guest order in the test.
 
+## 7. Follow-ups from the guest re-submit task
+
+Recorded on 2026-11-04 (task folder `.claude/work/2026-11-04-guest-resubmit-seat/`).
+
+### 7.1 The guest section of `ApiRoutes.md` does not agree with the code (P2)
+
+- **Where:** `docs/ApiRoutes.md` (guest routes).
+- **Problem:** `POST /guest/sessions` returns 200 with `SessionId` and `SessionToken`, not 201 with `sessionToken`. The dish routes are `/guest/sessions/{id}/dishes`, not `/guest-sessions/{id}/dishes`. The `GET /guest/sessions/{id}` shape and the submit message are different. The 409 for a submitted session and the 400 `GuestLimitExceeded` are not documented.
+- **Fix:** copy the routes, bodies and errors from the code.
+
+### 7.2 `POST /guest/sessions` does not stop a duplicate guest (P2)
+
+- **Where:** `Services/GuestSessions/GuestSessionService.cs` (`CreateGuestSessionAsync`).
+- **Problem:** the only check is the seat limit. The same person can take a second seat with the same name (see frontend tech debt 5.1).
+- **Fix:** reject a second session with the same name in the group (409), or reuse the session for a known token.
+
 ## Suggested order
 
 1. Items 1.6, 2.2, 2.3 and 2.4: small fixes with a test each.

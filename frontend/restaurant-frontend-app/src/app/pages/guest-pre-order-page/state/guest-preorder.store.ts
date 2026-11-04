@@ -296,41 +296,6 @@ export class GuestPreorderStore {
         if (ctx) this.clearStorage(ctx);
     }
 
-    async createNewPreorder() {
-        const ctx = this.contextId();
-        const invite = this.invite();
-        const guestName = this.guestName().trim();
-        if (!ctx || !invite?.GroupReservationId || !guestName || this.joinLoading()) return;
-
-        localStorage.removeItem(this.key(ctx, 'cart'));
-        localStorage.removeItem(this.key(ctx, 'guestSessionId'));
-        localStorage.removeItem(this.key(ctx, 'guestSessionToken'));
-
-        this.guestSessionId.set(null);
-        this.guestSessionToken.set(null);
-        this.menuByCategory.set({});
-        this.menuError.set(null);
-        this.menuLoading.set(true);
-        this.cartItems.set([]);
-        this.status.set('active');
-        this.joinLoading.set(true);
-
-        try {
-            const session = await firstValueFrom(this.guestSessionsService.createSession({
-                groupReservationId: invite.GroupReservationId,
-                guestName,
-            }));
-            this.guestSessionId.set(session.SessionId);
-            this.guestSessionToken.set(session.SessionToken);
-            await this.loadMenu();
-        } catch {
-            this.menuError.set('Could not start a new pre-order. Please try again.');
-        } finally {
-            this.menuLoading.set(false);
-            this.joinLoading.set(false);
-        }
-    }
-
     private async changeRemoteQuantity(
         dishId: string,
         quantity: number,

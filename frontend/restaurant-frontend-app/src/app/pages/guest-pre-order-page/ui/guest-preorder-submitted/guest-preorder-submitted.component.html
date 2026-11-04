@@ -57,8 +57,6 @@
             <strong class="total-value">{{ total() | currency: '$' }}</strong>
         </div>
 
-        <app-custom-button variant="secondary" fullWidth (click)="createNew.emit()">
-            Create New Pre-Order
-        </app-custom-button>
+        <p class="submitted-note">Your pre-order is final. To change it, contact the reservation owner.</p>
     </div>
 </div>
