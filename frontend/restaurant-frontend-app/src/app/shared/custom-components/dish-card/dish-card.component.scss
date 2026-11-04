@@ -17,6 +17,10 @@
   position: relative;
   box-sizing: border-box;
 
+  &:hover {
+    cursor: pointer;
+  }
+
   .dish-image {
     width: 62%;
     aspect-ratio: 1 / 1;
