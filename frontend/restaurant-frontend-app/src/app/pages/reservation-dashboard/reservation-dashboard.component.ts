@@ -21,6 +21,7 @@ import {
 
 import { AuthenticationService } from '@app/auth/services/authentication.service';
 import { CardReservationComponent } from '@app/components/reservations/card-reservation/card-reservation.component';
+import { GroupPreOrderModalComponent } from '@app/components/reservations/group-pre-order-modal/group-pre-order-modal.component';
 import { FeedbackWindowComponent } from '@app/components/reservations/feedback-window/feedback-window.component';
 import { ReservationConfirmedComponent } from '@app/components/reservations/reservation-confirmed/reservation-confirmed.component';
 import { MakeReservationComponent } from '@app/components/tables/make-reservation/make-reservation.component';
@@ -61,6 +62,7 @@ interface ReservationStatusView {
     MakeReservationComponent,
     ReservationConfirmedComponent,
     FeedbackWindowComponent,
+    GroupPreOrderModalComponent,
     LoadingSpinnerComponent,
   ],
   templateUrl: './reservation-dashboard.component.html',
@@ -100,6 +102,9 @@ export class ReservationDashboardComponent implements OnInit {
   readonly showEditReservationModal = signal(false);
   readonly showEditReservationConfirmed = signal(false);
   readonly showFeedbackModal = signal(false);
+
+  readonly groupPreOrderReservation = signal<ReservationCustomer | null>(null);
+  readonly ownerName = computed(() => `${this.firstName()} ${this.lastName()}`.trim());
 
   readonly statusEnum: Record<number, ReservationStatusView> = {
     [ReservationStatusCustomer.Reserved]: {
@@ -425,6 +430,19 @@ export class ReservationDashboardComponent implements OnInit {
 
     this.cancelReservation(reservation.id);
     this.showEditReservationConfirmed.set(false);
+  }
+
+  openGroupPreOrder(reservation: ReservationCustomer): void {
+    this.groupPreOrderReservation.set(reservation);
+  }
+
+  closeGroupPreOrder(event: { changed: boolean }): void {
+    this.groupPreOrderReservation.set(null);
+
+    if (event.changed) {
+      this.loadReservations();
+      this.cartState.refresh();
+    }
   }
 
   openFeedback(reservation: ReservationCustomer): void {

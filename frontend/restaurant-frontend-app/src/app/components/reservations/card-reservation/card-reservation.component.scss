@@ -38,6 +38,11 @@
       margin-left: 0.5rem;
     }
 
+    // The address stays on the left. The badge and the cancel icon sit in the top-right corner.
+    &.with-table .details:first-child {
+      margin-right: auto;
+    }
+
     .status-badge {
       display: inline-flex;
       align-items: center;
@@ -134,6 +139,11 @@
     gap: 1rem;
 
     margin-bottom: 5rem;
+
+    .cancel-icon {
+      align-self: flex-end;
+      margin-left: 0;
+    }
   }
 }
 

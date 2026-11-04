@@ -1,0 +1,247 @@
+<app-modal width="800px" title="Group Pre-Order" (closed)="onClose()">
+  @if (view(); as v) {
+    @if (v.isSubmitted) {
+      <span modal-title-addon class="sent-badge">Sent to Restaurant</span>
+    }
+  }
+
+  @switch (state()) {
+    @case ('loading') {
+      <app-loading-spinner message="Loading the group pre-order..." />
+    }
+
+    @case ('error') {
+      <p class="error" data-testid="gpo-error">Could not load the group pre-order.</p>
+    }
+
+    @case ('content') {
+      @if (view(); as v) {
+        <ul class="details">
+          <li>
+            <img src="assets/svg/location-green.svg" alt="" aria-hidden="true" />
+            {{ reservation().locationAddress }}
+          </li>
+          <li>
+            <img src="assets/svg/calendar-green.svg" alt="" aria-hidden="true" />
+            {{ reservation().startTime | date: 'mediumDate' }}
+          </li>
+          <li>
+            <img src="assets/svg/clock-green.svg" alt="" aria-hidden="true" />
+            {{ reservation().startTime | date: 'HH:mm' }} - {{ reservation().endTime | date: 'HH:mm' }}
+          </li>
+          <li>
+            <img src="assets/svg/people-green.svg" alt="" aria-hidden="true" />
+            {{ v.seatCount }} {{ v.seatCount === 1 ? 'Guest' : 'Guests' }}
+          </li>
+        </ul>
+
+        <div class="scroll">
+          <section class="card table-card">
+            <div class="card-header">
+              <h3 class="card-title">Table</h3>
+              <span class="muted" data-testid="gpo-ordered-summary">
+                &middot; {{ v.orderedCount }} of {{ v.seatCount }} ordered
+              </span>
+            </div>
+
+            <div class="seats-wrapper">
+              @if (seatsScroll()) {
+                <button type="button" class="seats-arrow" aria-label="Scroll seats left" (click)="scrollSeats(-1)">
+                  &lsaquo;
+                </button>
+              }
+
+              <ul class="seats" #seatsTrack>
+                @for (seat of v.seats; track $index) {
+                  <li class="seat">
+                    @switch (seat.kind) {
+                      @case ('owner') {
+                        <span class="ring" [class.ring--ordered]="seat.ordered" [class.ring--owner]="seat.ordered">
+                          {{ seat.initials }}
+                        </span>
+                        <span class="seat-label">You</span>
+                      }
+                      @case ('guest') {
+                        <span class="ring" [class.ring--ordered]="seat.ordered" [class.ring--empty]="!seat.ordered">
+                          {{ seat.initials }}
+                        </span>
+                        <span class="seat-label">{{ seat.name }}</span>
+                      }
+                      @case ('empty') {
+                        <span class="ring ring--empty">{{ seat.seatNumber }}</span>
+                        <span class="seat-label seat-label--muted">Waiting</span>
+                      }
+                    }
+                  </li>
+                }
+              </ul>
+
+              @if (seatsScroll()) {
+                <button type="button" class="seats-arrow" aria-label="Scroll seats right" (click)="scrollSeats(1)">
+                  &rsaquo;
+                </button>
+              }
+            </div>
+
+            @if (bonusBox(); as box) {
+              <div
+                class="bonus"
+                [class.bonus--progress]="box.tone === 'progress'"
+                [class.bonus--success]="box.tone === 'success'"
+                [class.bonus--muted]="box.tone === 'muted'"
+                data-testid="gpo-bonus"
+              >
+                <img
+                  class="bonus-icon"
+                  [src]="
+                    box.tone === 'progress'
+                      ? 'assets/svg/people-green.svg'
+                      : box.tone === 'success'
+                        ? 'assets/svg/check-circle.svg'
+                        : 'assets/svg/clock-green.svg'
+                  "
+                  alt=""
+                  aria-hidden="true"
+                />
+                <div class="bonus-text">
+                  <p class="bonus-heading">{{ box.heading }}</p>
+                  <p class="bonus-sub">{{ box.subLine }}</p>
+                  @if (box.progress !== null) {
+                    <div
+                      class="progress"
+                      role="progressbar"
+                      aria-label="Ordered seats"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                      [attr.aria-valuenow]="box.progress"
+                    >
+                      <div class="progress-value" [style.width.%]="box.progress"></div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </section>
+
+          @if (owner(); as me) {
+            <section class="card row">
+              <button
+                type="button"
+                class="row-main"
+                [attr.aria-expanded]="ownerExpanded()"
+                [disabled]="!v.ownerOrdered"
+                (click)="toggleOwner()"
+              >
+                <span class="avatar avatar--owner" [class.avatar--empty]="!v.ownerOrdered">
+                  {{ ownerInitials() }}
+                </span>
+                <span class="row-text">
+                  <span class="row-name">My Pre-Order</span>
+                  <span class="row-sub">
+                    {{ v.ownerOrdered ? itemsSummary(me) : "You haven't added your dishes yet" }}
+                  </span>
+                </span>
+                @if (v.ownerOrdered) {
+                  <span class="row-price">{{ v.ownerSubtotal | currency }}</span>
+                  <span class="chevron" [class.chevron--open]="ownerExpanded()" aria-hidden="true"></span>
+                }
+              </button>
+
+              @if (ownerExpanded() && v.ownerOrdered) {
+                <ul class="dish-list">
+                  @for (item of me.items; track item.dish.id) {
+                    <li>
+                      <span>{{ item.dish.name }} &times; {{ item.quantity }}</span>
+                      <span>{{ item.dish.price * item.quantity | currency }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+            </section>
+          }
+
+          <div class="section-header">
+            <h3 class="card-title">Guests' Pre-Orders</h3>
+            @if (guests().length > 0) {
+              <span class="muted">
+                &middot; {{ guests().length }} {{ guests().length === 1 ? 'guest' : 'guests' }}
+              </span>
+              <button type="button" class="link" (click)="toggleAllGuests()">
+                {{ allGuestsExpanded() ? 'Collapse all' : 'Expand all' }}
+              </button>
+            }
+          </div>
+
+          @if (guests().length === 0) {
+            <div class="empty-guests">
+              <img src="assets/svg/people-green.svg" alt="" aria-hidden="true" />
+              <p>No guest has joined yet</p>
+              <p class="muted">Guests who join with your link and submit their dishes appear here.</p>
+            </div>
+          } @else {
+            @for (guest of guests(); track guest.id) {
+              <section class="card row">
+                <button
+                  type="button"
+                  class="row-main"
+                  [attr.aria-expanded]="expandedGuestIds().has(guest.id)"
+                  (click)="toggleGuest(guest.id)"
+                >
+                  <span class="avatar" [class.avatar--empty]="!guest.isSubmitted">
+                    {{ guest.name.slice(0, 1).toUpperCase() }}
+                  </span>
+                  <span class="row-text">
+                    <span class="row-name">{{ guest.name }}</span>
+                    <span class="row-sub">{{ itemsSummary(guest) }}</span>
+                  </span>
+                  @if (guest.isSubmitted) {
+                    <span class="row-price">{{ guest.total | currency }}</span>
+                  } @else {
+                    <span class="waiting">Waiting</span>
+                  }
+                  <span class="chevron" [class.chevron--open]="expandedGuestIds().has(guest.id)" aria-hidden="true"></span>
+                </button>
+
+                @if (expandedGuestIds().has(guest.id)) {
+                  <ul class="dish-list">
+                    @for (item of guest.items; track item.dish.id) {
+                      <li>
+                        <span>{{ item.dish.name }} &times; {{ item.quantity }}</span>
+                        <span>{{ item.dish.price * item.quantity | currency }}</span>
+                      </li>
+                    }
+                  </ul>
+                }
+              </section>
+            }
+          }
+        </div>
+
+        <footer class="footer">
+          <div class="footer-totals">
+            <p class="grand-label">Grand Total</p>
+            <p class="breakdown">
+              My pre-order {{ v.ownerOrdered ? (v.ownerSubtotal | currency) : '—' }} &middot; Guests' pre-orders
+              ({{ v.orderedGuestCount }}) {{ v.guestsSubtotal | currency }}
+            </p>
+            <p
+              class="bonus-line"
+              [class.bonus-line--success]="v.bonus.state === 'Achieved'"
+              data-testid="gpo-bonus-line"
+            >
+              {{ footerBonusLine() }}
+            </p>
+          </div>
+
+          <span class="grand-total" data-testid="gpo-grand-total">{{ v.finalTotal | currency }}</span>
+
+          @if (!v.isSubmitted) {
+            <button type="button" class="button button--primary button--extra-large submit" [disabled]="!v.canSubmit">
+              Submit Pre-Order
+            </button>
+          }
+        </footer>
+      }
+    }
+  }
+</app-modal>

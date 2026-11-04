@@ -11,7 +11,10 @@
     </button>
 
     @if (title()) {
-      <h2 class="modal-title">{{ title() }}</h2>
+      <div class="modal-heading">
+        <h2 class="modal-title">{{ title() }}</h2>
+        <ng-content select="[modal-title-addon]" />
+      </div>
     }
 
     <div class="modal-body">

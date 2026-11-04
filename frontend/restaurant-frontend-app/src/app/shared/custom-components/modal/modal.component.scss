@@ -37,6 +37,13 @@
   cursor: pointer;
 }
 
+.modal-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 .modal-title {
   margin: 0;
   font-size: 26px;
