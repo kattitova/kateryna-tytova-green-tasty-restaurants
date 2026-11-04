@@ -58,6 +58,17 @@
     height: 20px;
 }
 
+// Red dot: the guest cart has dishes. Red because the strip is green.
+.cart-indicator {
+    position: absolute;
+    top: 7px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: color.$red-400;
+}
+
 .menu-container {
     background: color.$bg-yellow;
 }

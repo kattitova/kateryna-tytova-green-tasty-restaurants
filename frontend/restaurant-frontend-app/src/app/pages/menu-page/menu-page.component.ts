@@ -168,7 +168,8 @@ export class MenuPageComponent implements OnInit {
       .addDishToPreOrderByReservationId(this.preOrderReservationId!, dish, 1)
       .subscribe({
         next: () => {
-          this.toast.success('Dish added to cart successfully!', 'Success');
+          // Same wording as the guest page, so the owner also sees which dish was added.
+          this.toast.success(`${dish.name} added to your pre-order.`, 'Success');
           this.cartState.refresh();
         },
         error: (err) => {

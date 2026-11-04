@@ -86,7 +86,7 @@ describe('MenuPageComponent', () => {
     fixture.componentInstance.addDishToCart(dish);
 
     expect(preOrders.addDishToPreOrderByReservationId).toHaveBeenCalledOnceWith('res-1', dish, 1);
-    expect(toast.success).toHaveBeenCalledWith('Dish added to cart successfully!', 'Success');
+    expect(toast.success).toHaveBeenCalledWith('Green Salad added to your pre-order.', 'Success');
     expect(cartState.refresh).toHaveBeenCalledTimes(1);
   });
 

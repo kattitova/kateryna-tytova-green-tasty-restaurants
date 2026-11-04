@@ -24,8 +24,16 @@
         }
     </div>
 
-    <button type="button" class="cart-btn" (click)="openCart()" aria-label="Open cart">
-        <img src="assets/svg/cart-empty.svg" alt="" />
+    <button
+        type="button"
+        class="cart-btn"
+        (click)="openCart()"
+        [attr.aria-label]="store.hasCartDishes() ? 'Open cart, has dishes' : 'Open cart'"
+    >
+        <img src="assets/svg/cart-empty.svg" alt="" aria-hidden="true" />
+        @if (store.hasCartDishes()) {
+            <span class="cart-indicator" aria-hidden="true"></span>
+        }
     </button>
 </div>
 

@@ -61,6 +61,9 @@ export class GuestPreorderStore {
         this.cartItems().reduce((sum, i) => sum + i.price * i.qty, 0)
     );
 
+    /** True when the guest cart has at least one dish. Shows the dot on the cart icon. */
+    readonly hasCartDishes = computed(() => this.cartItems().some((item) => item.qty > 0));
+
     constructor() {
         effect(() => {
             const ctx = this.contextId();
