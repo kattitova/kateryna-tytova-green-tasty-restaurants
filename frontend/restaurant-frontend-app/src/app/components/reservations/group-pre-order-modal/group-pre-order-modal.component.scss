@@ -403,17 +403,23 @@ app-confirm-dialog {
 
 .footer {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
+  flex-direction: column;
+  gap: 12px;
   padding-top: 16px;
   border-top: 1px solid color.$bg-green;
 }
 
-.footer-totals {
+.footer-main {
   display: flex;
+  flex-wrap: nowrap;
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+}
+
+.footer-totals {
   flex: 1 1 240px;
-  flex-direction: column;
+  min-width: 0;
 }
 
 .grand-label {
@@ -456,6 +462,7 @@ app-confirm-dialog {
 }
 
 .submit {
+  margin-left: auto;
   min-width: 268px;
 }
 
@@ -593,8 +600,28 @@ app-confirm-dialog {
     flex-basis: calc(100% - 52px);
   }
 
-  .submit {
+  .footer-main {
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .footer-totals {
     flex-basis: 100%;
+  }
+
+  .grand-total {
+    margin-right: auto;
+    min-width: 0;
+  }
+
+  .submit {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    margin-left: 0;
+  }
+
+  .breakdown {
     min-width: 0;
   }
 }
