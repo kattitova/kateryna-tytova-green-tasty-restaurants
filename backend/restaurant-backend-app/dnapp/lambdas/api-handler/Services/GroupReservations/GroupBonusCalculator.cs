@@ -17,8 +17,8 @@ public static class GroupBonusCalculator
         DateTime nowUtc,
         bool groupIsOpen)
     {
-        DateTime discountDeadline = Utc(reservationStartUtc - DiscountLeadTime);
-        DateTime dessertDeadline = Utc(reservationStartUtc - DessertLeadTime);
+        DateTime discountDeadline = Before(reservationStartUtc, DiscountLeadTime);
+        DateTime dessertDeadline = Before(reservationStartUtc, DessertLeadTime);
 
         if (orderedCount >= seatCount)
         {
@@ -43,7 +43,9 @@ public static class GroupBonusCalculator
         return nowUtc <= dessertDeadline ? InProgress(GroupBonusTier.FreeDessert, dessertDeadline) : Missed(dessertDeadline);
     }
 
-    private static DateTime Utc(DateTime value) => DateTime.SpecifyKind(value, DateTimeKind.Utc);
+    // Clamps at DateTime.MinValue so a start time near the minimum does not throw.
+    private static DateTime Before(DateTime start, TimeSpan lead) =>
+        DateTime.SpecifyKind(start - DateTime.MinValue < lead ? DateTime.MinValue : start - lead, DateTimeKind.Utc);
 
     private static int PercentFor(GroupBonusTier tier) => tier == GroupBonusTier.TenPercentDiscount ? DiscountPercent : 0;
 

@@ -318,6 +318,25 @@ public class OrderServiceTests
 
     [Theory]
     [AutoData]
+    public async Task AddOrderAsync_ValidOrder_SetsCreatedAtToCurrentUtcTime(Order order, Reservation reservation)
+    {
+        order.ReservationId = reservation.Id;
+        order.CreatedAt = null;
+        reservation.StartTime = DateTime.UtcNow.AddHours(2);
+
+        _mockReservationRepository.Setup(r => r.GetReservationByIdAsync(reservation.Id)).ReturnsAsync(reservation);
+        _mockOrderRepository.Setup(r => r.GetOrderByReservationIdAsync(reservation.Id)).ReturnsAsync((Order?)null);
+
+        DateTime before = DateTime.UtcNow;
+        await _orderService.AddOrderAsync(order);
+        DateTime after = DateTime.UtcNow;
+
+        Assert.NotNull(order.CreatedAt);
+        Assert.InRange(order.CreatedAt.Value, before, after);
+    }
+
+    [Theory]
+    [AutoData]
     public async Task AddOrderAsync_ShouldThrowException_WhenActiveOrderExists(Order order, Reservation reservation)
     {
         order.ReservationId = reservation.Id;

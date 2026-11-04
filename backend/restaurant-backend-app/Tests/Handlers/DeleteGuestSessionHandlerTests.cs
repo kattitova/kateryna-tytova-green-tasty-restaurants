@@ -259,12 +259,15 @@ public class DeleteGuestSessionHandlerTests
     [Fact]
     public async Task HandleRequest_NoGuestsRemain_Returns200WithEmptyParticipantsAndZeroTotal()
     {
-        ArrangeServiceReturns(new GetAllSessionsResponse([], 0));
+        var owner = new Participant("owner-group-1", ParticipantType.Owner, "Owner", [], 0, false);
+        ArrangeServiceReturns(new GetAllSessionsResponse([], 0) { Owner = owner });
 
         var response = await _handler.HandleRequest(Request(), _mockContext.Object);
 
         Assert.Equal(200, response.StatusCode);
-        Assert.Equal("""{"participants":[],"total":0}""", response.Body);
+        Assert.Equal(
+            """{"participants":[],"total":0,"owner":{"id":"owner-group-1","type":"Owner","name":"Owner","items":[],"total":0,"isSubmitted":false}}""",
+            response.Body);
     }
 
     // Service errors

@@ -1,5 +1,6 @@
 using Amazon.DynamoDBv2.DataModel;
 using APIHandler.Converters;
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -38,4 +39,8 @@ public class Order
     [DynamoDBProperty("status", typeof(EnumAsIntConverter<OrderStatus>))]
     [JsonPropertyName("status")]
     public OrderStatus Status { get; set; }
+
+    [DynamoDBProperty("createdAt")]
+    [JsonPropertyName("createdAt")]
+    public DateTime? CreatedAt { get; set; }
 }

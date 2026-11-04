@@ -98,6 +98,7 @@ public class OrderService : IOrderService
         }
 
         order.Status = OrderStatus.Created;
+        order.CreatedAt = DateTime.UtcNow;
         await _orderRepository.SaveOrderAsync(order);
 
         if (!string.IsNullOrEmpty(reservation.WaiterId))
@@ -120,6 +121,7 @@ public class OrderService : IOrderService
         }
 
         order.Status = OrderStatus.Created;
+        order.CreatedAt = DateTime.UtcNow;
         await _orderRepository.SaveOrderAsync(order);
     }
 

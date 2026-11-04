@@ -1,5 +1,6 @@
 ﻿using Amazon.DynamoDBv2.DataModel;
 using APIHandler.Constants;
+using System;
 using System.Collections.Generic;
 
 namespace APIHandler.Entities;
@@ -31,4 +32,7 @@ public class GuestSession
 
     [DynamoDBProperty("isSubmitted")]
     public bool IsSubmitted { get; set; }
+
+    [DynamoDBProperty("submittedAt")]
+    public DateTime? SubmittedAt { get; set; }
 }

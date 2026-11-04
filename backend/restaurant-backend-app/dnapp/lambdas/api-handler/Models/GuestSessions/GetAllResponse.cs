@@ -4,7 +4,11 @@ using System.Text.Json.Serialization;
 
 namespace APIHandler.Models.GuestSessions;
 
-public record GetAllSessionsResponse(IEnumerable<Participant> Participants, decimal Total);
+public record GetAllSessionsResponse(IEnumerable<Participant> Participants, decimal Total)
+{
+    [JsonPropertyName("owner")]
+    public Participant? Owner { get; init; }
+}
 
 public record Participant(
     string? Id,
