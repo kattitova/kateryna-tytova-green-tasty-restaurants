@@ -43,11 +43,11 @@ Priority:
 
 ## 2. Tests and documentation
 
-### 2.1 46 unit tests fail (P2)
+### 2.1 Unit test baseline is 0 failed (fixed)
 
-- **Where:** the Karma suite, outside the cart. Examples are stub specs and specs with missing providers.
-- **Problem:** before the redesign, `npm test -- --watch=false --browsers=ChromeHeadless` gave 46 failed tests. The number did not change after the redesign. A new failure is easy to miss among them.
-- **Fix:** fix or remove the failing specs. Then make 0 failed tests the baseline.
+- **Where:** the Karma suite.
+- **Fact:** `npm test -- --watch=false --browsers=ChromeHeadless` gave 0 failed of 364 tests on 2026-11-04. The earlier 46 failures no longer occur.
+- **Fix:** none needed. Keep 0 failed as the baseline.
 
 ### 2.2 `npm test` cannot start Chrome with no screen (P2)
 
@@ -64,5 +64,5 @@ Priority:
 ### 2.4 `docs/ApiRoutes.md` does not agree with the backend code (P2)
 
 - **Where:** `backend/restaurant-backend-app/docs/ApiRoutes.md`.
-- **Problem:** the group status path and fields near line 1191 do not agree with `RouteRegistry.cs:195` and `GroupReservationStatusResponse.cs`. Lines 1132 and 1147 use `/guest-sessions/...`, but the code uses `/guest/sessions/...`. The document shows the order `status` as a string, but the frontend `Order.status` is a number.
+- **Problem:** the group status section now agrees with the code. Lines 1132 and 1147 use `/guest-sessions/...`, but the code uses `/guest/sessions/...`. The document shows the order `status` as a string, but the frontend `Order.status` is a number.
 - **Fix:** copy the paths, fields and types from the code into `ApiRoutes.md`.

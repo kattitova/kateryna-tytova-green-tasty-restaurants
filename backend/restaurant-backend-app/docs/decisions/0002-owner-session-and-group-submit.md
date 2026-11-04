@@ -111,6 +111,13 @@ Only a deployed stack can check these:
 5. The Lambda role can run the transaction (`dynamodb:UpdateItem` on both tables).
 6. API Gateway routing and the Cognito authorizer on both resources.
 
+## Amendment 2026-11-04: owner own items and at least one pre-order
+
+- **Owner own items.** One rule, `GroupPreOrderRules.OwnerOwnItems`, gives the owner's items: the order items that are not `Canceled`. When the group status is `Submitted`, the rule subtracts the quantities of the submitted guest dishes, because the submit merged them into the order. The status (`orderedCount`), the sessions snapshot (`owner`) and the submit use this rule.
+- **Submit (changes checks 5, 6 and 7 of decision 9).** The submit needs at least one pre-order: a submitted guest dish, or owner own items. If there is none, it returns 400 `Nothing to submit: the group has no pre-orders.`. If the reservation has no order, the submit creates the order of the owner (the table location gives the address). If the location is missing, it returns 400 `Location not found for the reservation's table.`. The response can be `[]`.
+- **New data.** `Order.createdAt` and `GuestSession.submittedAt` are optional. Records from before this change count as on time for the group bonus.
+- **Status and sessions.** `GET /guest/groups/{groupReservationId}/status` adds `orderedCount` and `bonus`. The sessions and delete responses add `owner`. See `docs/ApiRoutes.md`.
+
 ## References
 
 - Contract: `docs/ApiRoutes.md`, entries `GET /reservations/{reservationId}/guest-session-id` and `POST /guest/groups/{groupReservationId}/submit`. Swagger: `swagger_src/swagger-ui/swagger-endpoints.yaml`, `getOwnerSessionId` and `submitGroupPreOrder`.

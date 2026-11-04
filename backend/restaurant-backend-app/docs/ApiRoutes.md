@@ -1195,15 +1195,58 @@ Response: 200 OK
 }
 ```
 
-### `GET` /group-reservations/{groupReservationId}/status
+### `GET` /guest/groups/{groupReservationId}/status
+Auth: none. The route is public: API Gateway has no authorizer on it. Anyone who knows the `groupReservationId` can read the response. The response has no names.
+
 Response: 200 OK
 ```json
 {
-  "status": "string",
-  "totalGuests": 4,
-  "submittedGuests": 3
+  "currentParticipants": 3,
+  "maxCapacity": 4,
+  "status": "Open",
+  "orderedCount": 2,
+  "bonus": {
+    "state": "InProgress",
+    "tier": "TenPercentDiscount",
+    "discountPercent": 10,
+    "deadline": "2026-11-10T18:00:00Z"
+  }
 }
 ```
+
+Fields:
+- `currentParticipants`: joined guests plus the owner. Owner sessions are not guests.
+- `maxCapacity`: `guestCount` of the reservation. It includes the owner.
+- `status`: `Open`, `Submitted` or `Closed`.
+- `orderedCount`: 1 if the owner has own items in the order, plus the guest sessions with `isSubmitted: true`. After a group submit, the dishes of the guests are not counted as owner items.
+- `bonus.state`: `InProgress`, `Achieved` or `Missed`.
+- `bonus.tier`: `TenPercentDiscount`, `FreeDessert` or `null`. `null` only when `state` is `Missed`.
+- `bonus.discountPercent`: 10 for `TenPercentDiscount` (also while `state` is `InProgress`), else 0.
+- `bonus.deadline`: UTC time with `Z`, or `null` when `state` is `Achieved`.
+
+Bonus rules. `start` is the reservation start time in UTC. The last time is the latest of the owner order `createdAt` and the `submittedAt` of the ordered guests. The rules skip a missing time.
+- All seats ordered (`orderedCount` is not less than `maxCapacity`), in every group status:
+  - Last time is `start - 24 h` or earlier, or there is no last time: `Achieved` with `TenPercentDiscount`.
+  - Else last time is `start - 2 h` or earlier: `Achieved` with `FreeDessert`.
+  - Else `Missed`.
+- Not all seats ordered and the group status is not `Open`: `Missed`.
+- Not all seats ordered and the group status is `Open`:
+  - Now is `start - 24 h` or earlier: `InProgress` with `TenPercentDiscount`. The `deadline` is `start - 24 h`.
+  - Else now is `start - 2 h` or earlier: `InProgress` with `FreeDessert`. The `deadline` is `start - 2 h`.
+  - Else `Missed`.
+- `Missed` has `tier: null`, `discountPercent: 0` and `deadline` = `start - 2 h`.
+- The limits are inclusive.
+- The order has no discount field. The client calculates the discount.
+
+Errors:
+
+| Status | When | Body |
+|---|---|---|
+| 400 | The `groupReservationId` path parameter is missing or empty. | `{"error": "Missing groupReservationId in path parameters."}` |
+| 404 | The group reservation does not exist. | `{"error": "Group reservation was not found"}` |
+| 500 | Another error occurs, for example a DynamoDB error, or the parent reservation does not exist. | `{"error": "Internal server error: {message}"}` |
+
+In the 500 body, `{message}` is the text of the error.
 
 ### `POST` /guest/groups/{groupReservationId}/submit
 Auth: Cognito ID token. The caller must be the owner of the reservation.
@@ -1243,18 +1286,19 @@ Errors:
 | 404 | The group reservation does not exist, or it belongs to a different reservation. | `{"error": "Group reservation was not found"}` |
 | 400 | The group reservation status is `Submitted`. | `{"message": "Group reservation was submitted.", "errorCode": "GroupReservationSubmitted"}` |
 | 400 | The group reservation status is `Closed`. | `{"message": "Group reservation is expired.", "errorCode": "GroupReservationExpired"}` |
-| 400 | No guest session of the group has `isSubmitted: true`. | `{"message": "No submitted guest sessions for group reservation '{groupReservationId}'.", "errorCode": "Unknown"}` |
-| 400 | The submitted guest sessions have no dishes. | `{"message": "Submitted guest sessions contain no dishes.", "errorCode": "Unknown"}` |
-| 400 | The reservation has no order. | `{"message": "Active pre-order for reservation '{reservationId}' not found.", "errorCode": "Unknown"}` |
+| 400 | No submitted guest session has dishes, and the owner has no own order items. | `{"message": "Nothing to submit: the group has no pre-orders.", "errorCode": "Unknown"}` |
+| 400 | The reservation has no order, the group has dishes to submit, and the table has no location. | `{"message": "Location not found for the reservation's table.", "errorCode": "Unknown"}` |
 | 400 | A parallel request changed the group reservation status before the write. | `{"message": "Group reservation was submitted.", "errorCode": "GroupReservationSubmitted"}` |
 | 500 | DynamoDB cancels the transaction for a reason other than the status condition, or another error occurs. | `{"error": "Internal Server Error"}` |
 
-The checks run in the order of the table. In the messages, `{groupReservationId}` and `{reservationId}` are the values from the request.
+The checks run in the order of the table.
 
 Notes:
+- The request needs at least one pre-order. A pre-order is a dish in a guest session with `isSubmitted: true`, or an owner order item that is not `Canceled`. The owner items are the order items without the dishes of the submitted guests.
 - The request uses only the guest sessions with `isSubmitted: true`. The request also uses the owner session when it has `isSubmitted: true`.
 - The request adds the quantities of each `dishId`. The response lists each dish one time, in the order of its first occurrence.
-- The request adds the dishes to the order of the reservation:
+- If the reservation has no order, the request creates the order of the owner. It has `customerId` of the caller, the address of the table location, the reservation time text, the guest dishes as `Pending` items, `createdAt` and the status `SubmittedByCustomer`. The request reads the location only in this case.
+- If the reservation has an order, the request adds the guest dishes to it. The owner items are not added a second time:
   - An order item with the same `dishId` and state `Pending` or `Confirmed` gets the quantity added. Its state becomes `Pending`.
   - An order item with the same `dishId` and state `Canceled` gets the quantity from the guest sessions. Its state becomes `Pending`.
   - A dish without an order item becomes a new `Pending` item at the end of the list.
@@ -1262,7 +1306,7 @@ Notes:
 - The order status becomes `SubmittedByCustomer`, and the group reservation status becomes `Submitted`. One DynamoDB transaction writes both items, so both change or neither changes.
 - The transaction writes the group reservation only if its status is `Open`. A second or parallel submit gets 400 `GroupReservationSubmitted`.
 - After the submit, guests cannot change their sessions.
-- The response lists only the dishes from the guest sessions. It does not list the other order items.
+- The response lists only the dishes from the guest sessions. It does not list the other order items. The list is empty (`[]`) when only the owner ordered.
 - If the token is missing or not valid, the API Gateway Cognito authorizer sends 401 before the Lambda runs. That body comes from API Gateway, not from the table above.
 
 ### `GET` /guest/groups/{groupReservationId}/sessions
@@ -1290,10 +1334,20 @@ Response: 200 OK
       "isSubmitted": true
     }
   ],
-  "total": 360
+  "total": 360,
+  "owner": {
+    "id": "owner-group1",
+    "type": "Owner",
+    "name": "Owner",
+    "items": [],
+    "total": 0,
+    "isSubmitted": false
+  }
 }
 ```
 The `dish` value is the full dish object. The example shows only `id`, `name` and `price`.
+
+The `owner` participant has the id `owner-{groupReservationId}`, the name `Owner` and the own items of the owner. `isSubmitted` is `true` when the owner has own items. `participants` and `total` list guests only.
 
 Errors:
 
@@ -1306,7 +1360,7 @@ Errors:
 | 404 | The parent reservation does not exist. | `{"error": "Reservation not found."}` |
 
 Notes:
-- The response lists only guest sessions. The owner session is not in the list.
+- `participants` lists only guest sessions. The owner is in `owner`.
 - If a dish no longer exists, the response leaves out the order items for that dish. The totals do not include them.
 - This request works in every group reservation status.
 - If the token is missing or not valid, the API Gateway Cognito authorizer sends 401 before the Lambda runs. That body comes from API Gateway, not from the table above.
@@ -1338,10 +1392,20 @@ Response: 200 OK
       "isSubmitted": false
     }
   ],
-  "total": 220
+  "total": 220,
+  "owner": {
+    "id": "owner-group1",
+    "type": "Owner",
+    "name": "Owner",
+    "items": [],
+    "total": 0,
+    "isSubmitted": false
+  }
 }
 ```
 The `dish` value is the full dish object. The example shows only `id`, `name` and `price`.
+
+The `owner` participant has the same shape as in `GET /guest/groups/{groupReservationId}/sessions`.
 
 Errors:
 
@@ -1365,7 +1429,7 @@ Notes:
 - This request works only when the group reservation status is `Open`.
 - The owner cannot delete the owner session.
 - The owner can delete a guest session with `isSubmitted: true`. A later group submit does not include the dishes of that session.
-- The response lists only guest sessions. The owner session is not in the list.
+- `participants` lists only guest sessions. The owner is in `owner`.
 - If a dish no longer exists, the response leaves out the order items for that dish. The totals do not include them.
 - A second DELETE of the same `guestSessionId` returns 404. The client can treat this 404 as "already deleted".
 - If the token is missing or not valid, the API Gateway Cognito authorizer sends 401 before the Lambda runs. That body comes from API Gateway, not from the table above.
