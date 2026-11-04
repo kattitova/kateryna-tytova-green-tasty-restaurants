@@ -1,0 +1,548 @@
+const imgIcon24People = "https://www.figma.com/api/mcp/asset/76d58d53-fd66-4eac-9285-56d18e1ec29c.svg";
+const imgIcon = "https://www.figma.com/api/mcp/asset/19b6ae7a-fbff-4a84-9d86-264e8564d68b.svg";
+const imgIcon1 = "https://www.figma.com/api/mcp/asset/a3e40146-dd7a-4daa-95f1-3b8974539762.svg";
+const imgRingStroke1 = "https://www.figma.com/api/mcp/asset/0f2c591d-4639-498d-86dd-9c2b9cf13e90.png";
+const imgRingStroke = "https://www.figma.com/api/mcp/asset/c59fda7e-74b6-42ec-a14c-e17668875b99.svg";
+const imgFill = "https://www.figma.com/api/mcp/asset/f8ba70d5-6143-414a-a999-6aa8f433497d.svg";
+const imgFill1 = "https://www.figma.com/api/mcp/asset/dd23e01c-7d1d-49bd-9ce9-05d710034738.svg";
+const imgDishPicture = "https://www.figma.com/api/mcp/asset/52eb7b20-fa48-4133-ba43-1b9903d1d195.png";
+const imgDishPicture1 = "https://www.figma.com/api/mcp/asset/be1966cd-9367-490e-b75b-a292d5d8ddb4.png";
+const imgDishPicture2 = "https://www.figma.com/api/mcp/asset/9517274f-e0d8-48f2-9be5-69d1de4809fc.png";
+const imgDishPicture3 = "https://www.figma.com/api/mcp/asset/6a22613b-64d9-4520-9efd-33b10da3e6c0.png";
+const imgIcon16Location = "https://www.figma.com/api/mcp/asset/894bb440-5b24-481c-b90c-55a9f053bc1f.svg";
+const imgIcon16Calendar = "https://www.figma.com/api/mcp/asset/1a6ac290-323c-45c2-90cf-3328fcb0e177.svg";
+const imgIcon16Clock = "https://www.figma.com/api/mcp/asset/60bb2a5b-cef6-44f9-8975-093fa562de0c.svg";
+const imgIcon16People = "https://www.figma.com/api/mcp/asset/930acd4f-b45f-449a-9d35-5c50fd27d992.svg";
+const imgIcon24ChevronUp = "https://www.figma.com/api/mcp/asset/eb083d89-2a96-43f4-96ec-d74f6ef5ea2e.svg";
+const imgIcon24Delete = "https://www.figma.com/api/mcp/asset/4d00a1e5-bd5f-407b-bc7c-41c7962a1de0.svg";
+const imgIcon24Plus = "https://www.figma.com/api/mcp/asset/eec9590e-e688-46de-a86e-ab718b034066.svg";
+const imgIcon24ChevronDown = "https://www.figma.com/api/mcp/asset/6216789c-ec20-4ed9-800f-88e5f90b7293.svg";
+const imgIcon24Close = "https://www.figma.com/api/mcp/asset/180100d0-1e57-4fc2-98e1-bb5ee81491ee.svg";
+
+function Icon24People({ className }: { className?: string }) {
+  return (
+    <div className={className || "relative size-[24px]"} data-node-id="143:1748" data-name="Icon/24/People">
+      <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIcon24People} />
+    </div>
+  );
+}
+
+type BonusBannerProps = {
+  className?: string;
+  status?: "In progress";
+};
+
+function BonusBanner({ className, status = "In progress" }: BonusBannerProps) {
+  return (
+    <div className={className || "bg-[#e9ffea] content-stretch flex gap-[12px] items-start px-[16px] py-[12px] relative rounded-[8px] w-[560px]"} data-node-id="120009:26748">
+      <Icon24People className="relative shrink-0 size-[24px]" />
+      <div className="content-stretch flex flex-[1_0_0] flex-col gap-[6px] items-start min-w-px overflow-clip relative" data-node-id="120009:26751" data-name="Text">
+        <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[24px] not-italic relative shrink-0 text-[#232323] text-[14px] w-full" data-node-id="120009:26752">
+          2 more pre-orders — 10% off for the whole table
+        </p>
+        <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[16px] not-italic relative shrink-0 text-[#575757] text-[12px] w-full" data-node-id="120009:26753">
+          Until Oct 16, 12:00 · 1 day 3 h left
+        </p>
+        <div className="bg-[#c5e8c7] content-stretch flex h-[6px] items-start overflow-clip pr-[164px] relative rounded-[3px] shrink-0 w-full" data-node-id="120009:26754" data-name="Progress">
+          <div className="bg-[#0f7a37] flex-[1_0_0] h-[6px] min-w-px relative rounded-[3px]" data-node-id="120009:26755" data-name="Value" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type SeatsStepperProps = {
+  className?: string;
+  state?: "At booked size";
+};
+
+function SeatsStepper({ className, state = "At booked size" }: SeatsStepperProps) {
+  return (
+    <div className={className || "content-stretch flex gap-[8px] h-[36px] items-center relative w-[560px]"} data-node-id="120037:28010">
+      <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[24px] not-italic relative shrink-0 text-[#575757] text-[14px] whitespace-nowrap" data-node-id="120037:28011">{`Guest can't come?`}</p>
+      <div className="flex-[1_0_0] h-[8px] min-w-px relative" data-node-id="120037:28012" data-name="Spacer" />
+      <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[24px] not-italic relative shrink-0 text-[#232323] text-[14px] whitespace-nowrap" data-node-id="120037:28013">
+        Seats
+      </p>
+      <div className="content-stretch flex gap-[4px] items-center overflow-clip relative shrink-0" data-node-id="120037:28014" data-name="Stepper">
+        <div className="bg-white border border-[#0f7a37] border-solid content-stretch flex items-center justify-center overflow-clip relative rounded-[8px] shrink-0 size-[36px]" data-node-id="120037:28015" data-name="Minus">
+          <div className="relative shrink-0 size-[18px]" data-node-id="120037:28016" data-name="icon">
+            <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIcon} />
+          </div>
+        </div>
+        <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[24px] not-italic relative shrink-0 text-[#232323] text-[14px] text-center w-[28px]" data-node-id="120037:28018">
+          6
+        </p>
+        <div className="bg-white border border-[#dadada] border-solid content-stretch flex items-center justify-center overflow-clip relative rounded-[8px] shrink-0 size-[36px]" data-node-id="120037:28019" data-name="Plus">
+          <div className="relative shrink-0 size-[18px]" data-node-id="120037:28020" data-name="icon">
+            <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIcon1} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type SeatProps = {
+  className?: string;
+  status?: "Owner" | "Ordered" | "Empty";
+};
+
+function Seat({ className, status = "Owner" }: SeatProps) {
+  const isEmpty = status === "Empty";
+  const isOrdered = status === "Ordered";
+  return (
+    <div className={className || "content-stretch flex flex-col gap-[6px] items-center relative w-[76px]"} id={isEmpty ? "node-120009_26645" : isOrdered ? "node-120009_26639" : "node-120009_26633"}>
+      <div className="relative shrink-0 size-[56px]" id={isEmpty ? "node-120009_26646" : isOrdered ? "node-120009_26640" : "node-120009_26634"} data-name="Ring">
+        <div className="absolute left-0 size-[56px] top-0" id={isEmpty ? "node-120009_26647" : isOrdered ? "node-120009_26641" : "node-120009_26635"} data-name="Ring stroke">
+          <img alt="" className="absolute block inset-0 max-w-none size-full" height={isEmpty ? "56" : undefined} src={isEmpty ? imgRingStroke1 : imgRingStroke} width={isEmpty ? "56" : undefined} />
+        </div>
+        {["Owner", "Ordered"].includes(status) && (
+          <div className="absolute left-[6px] size-[44px] top-[6px]" id={isOrdered ? "node-120009_26642" : "node-120009_26636"} data-name="Fill">
+            <img alt="" className="absolute block inset-0 max-w-none size-full" src={isOrdered ? imgFill1 : imgFill} />
+          </div>
+        )}
+        <p className={`-translate-x-1/2 [word-break:break-word] absolute font-["Poppins:Medium"] h-[24px] leading-[24px] left-[28px] not-italic text-[16px] text-center top-[16px] w-[56px] ${isEmpty ? "text-[#575757]" : isOrdered ? "text-[#0b5b29]" : "text-white"}`} id={isEmpty ? "node-120009_26648" : isOrdered ? "node-120009_26643" : "node-120009_26637"}>
+          {isEmpty ? "5" : isOrdered ? "AK" : "KT"}
+        </p>
+      </div>
+      <p className={`[word-break:break-word] font-["Poppins:Regular"] leading-[16px] not-italic overflow-hidden relative shrink-0 text-[12px] text-center text-ellipsis w-[76px] whitespace-nowrap ${isEmpty ? "text-[#575757]" : "text-[#232323]"}`} id={isEmpty ? "node-120009_26649" : isOrdered ? "node-120009_26644" : "node-120009_26638"}>
+        {isEmpty ? "Waiting" : isOrdered ? "Anna" : "You"}
+      </p>
+    </div>
+  );
+}
+
+export default function M02ExpandedMyOrderGuest() {
+  return (
+    <div className="bg-[#f7f7f7] drop-shadow-[0px_0px_5px_rgba(218,218,218,0.7)] relative rounded-[24px] size-full" data-node-id="120068:28828" data-name="M02 · Expanded — my order + guest">
+      <div className="absolute content-stretch flex flex-col gap-[4px] items-start justify-center left-[40px] right-[40px] top-[40px]" data-node-id="120068:28829" data-name="Heading">
+        <div className="content-stretch flex gap-[8px] items-center justify-center relative shrink-0" data-node-id="120068:28830" data-name="Title">
+          <div className="[word-break:break-word] flex flex-col font-['Poppins:Medium'] justify-center leading-[0] not-italic relative shrink-0 text-[#232323] text-[26px] whitespace-nowrap" data-node-id="120068:28831">
+            <p className="leading-[40px]">Group Pre-Order</p>
+          </div>
+        </div>
+        <div className="border-[#d9e5d9] border-b border-solid content-stretch flex gap-[16px] items-center py-[8px] relative shrink-0 w-full" data-node-id="120068:28833" data-name="Reservation Details">
+          <div className="content-stretch flex gap-[8px] items-center relative shrink-0" data-node-id="120068:28834" data-name="Date">
+            <div className="relative shrink-0 size-[16px]" data-node-id="120068:28835" data-name="Icon/16/Location">
+              <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIcon16Location} />
+            </div>
+            <div className="[word-break:break-word] flex flex-col font-['Poppins:Regular'] justify-center leading-[0] not-italic relative shrink-0 text-[#232323] text-[14px] whitespace-nowrap" data-node-id="120068:28836">
+              <p className="leading-[24px]">48 Rustaveli Avenue</p>
+            </div>
+          </div>
+          <div className="content-stretch flex gap-[8px] items-center relative shrink-0" data-node-id="120068:28837" data-name="Date">
+            <div className="relative shrink-0 size-[16px]" data-node-id="120068:28838" data-name="Icon/16/Calendar">
+              <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIcon16Calendar} />
+            </div>
+            <div className="[word-break:break-word] flex flex-col font-['Poppins:Regular'] justify-center leading-[0] not-italic relative shrink-0 text-[#232323] text-[14px] whitespace-nowrap" data-node-id="120068:28839">
+              <p className="leading-[24px]">Oct 17, 2026</p>
+            </div>
+          </div>
+          <div className="content-stretch flex gap-[8px] items-center relative shrink-0" data-node-id="120068:28840" data-name="Date">
+            <div className="relative shrink-0 size-[16px]" data-node-id="120068:28841" data-name="Icon/16/Clock">
+              <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIcon16Clock} />
+            </div>
+            <div className="[word-break:break-word] flex flex-col font-['Poppins:Regular'] justify-center leading-[0] not-italic relative shrink-0 text-[#232323] text-[14px] whitespace-nowrap" data-node-id="120068:28842">
+              <p className="leading-[24px]">12:00 - 14:00</p>
+            </div>
+          </div>
+          <div className="content-stretch flex gap-[8px] items-center relative shrink-0" data-node-id="120068:28843" data-name="Date">
+            <div className="relative shrink-0 size-[16px]" data-node-id="120068:28844" data-name="Icon/16/People">
+              <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIcon16People} />
+            </div>
+            <div className="[word-break:break-word] flex flex-col font-['Poppins:Regular'] justify-center leading-[0] not-italic relative shrink-0 text-[#232323] text-[14px] whitespace-nowrap" data-node-id="120068:28845">
+              <p className="leading-[24px]">6 Guests</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="absolute content-stretch flex flex-col gap-[20px] h-[498px] items-start left-[40px] overflow-x-clip overflow-y-auto right-[40px] top-[149px]" data-node-id="120068:28846" data-name="Body">
+        <div className="bg-white content-stretch flex flex-col items-start p-[16px] relative rounded-[12px] shrink-0 w-full" data-node-id="120068:28924" data-name="Table card">
+          <div className="content-stretch flex flex-col gap-[16px] items-start relative shrink-0 w-full" data-node-id="120068:28909" data-name="Guests">
+            <div className="content-stretch flex gap-[8px] items-center overflow-clip relative shrink-0 w-full" data-node-id="120068:28910" data-name="Guests header">
+              <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[32px] not-italic relative shrink-0 text-[#232323] text-[18px] whitespace-nowrap" data-node-id="120068:28911">
+                Table
+              </p>
+              <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[24px] not-italic relative shrink-0 text-[#575757] text-[14px] whitespace-nowrap" data-node-id="120068:28912">
+                · 4 of 6 ordered
+              </p>
+              <div className="flex-[1_0_0] h-[8px] min-w-px relative" data-node-id="120068:28913" data-name="Spacer" />
+              <div className="bg-white border-[#0f7a37] border-[1.4px] border-solid content-stretch flex gap-[8px] items-center justify-center px-[12px] py-[4px] relative rounded-[8px] shrink-0" data-node-id="120068:28914" data-name="Copy pre-order link">
+                <div className="[word-break:break-word] flex flex-col font-['Poppins:Medium'] justify-center leading-[0] not-italic relative shrink-0 text-[#0f7a37] text-[14px] text-center whitespace-nowrap" data-node-id="I120068:28914;143:1849">
+                  <p className="leading-[24px]">Copy pre-order link</p>
+                </div>
+              </div>
+            </div>
+            <div className="content-stretch flex gap-[16px] items-center overflow-clip relative shrink-0" data-node-id="120068:28915" data-name="Seats">
+              <Seat className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-[76px]" />
+              <Seat className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-[76px]" status="Ordered" />
+              <div className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-[76px]" data-node-id="120068:28918" data-name="Seat">
+                <div className="relative shrink-0 size-[56px]" data-node-id="I120068:28918;120009:26640" data-name="Ring">
+                  <div className="absolute left-0 size-[56px] top-0" data-node-id="I120068:28918;120009:26641" data-name="Ring stroke">
+                    <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgRingStroke} />
+                  </div>
+                  <div className="absolute left-[6px] size-[44px] top-[6px]" data-node-id="I120068:28918;120009:26642" data-name="Fill">
+                    <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgFill1} />
+                  </div>
+                  <p className="-translate-x-1/2 [word-break:break-word] absolute font-['Poppins:Medium'] h-[24px] leading-[24px] left-[28px] not-italic text-[#0b5b29] text-[16px] text-center top-[16px] w-[56px]" data-node-id="I120068:28918;120009:26643">
+                    OP
+                  </p>
+                </div>
+                <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[16px] not-italic overflow-hidden relative shrink-0 text-[#232323] text-[12px] text-center text-ellipsis w-[76px] whitespace-nowrap" data-node-id="I120068:28918;120009:26644">
+                  Oleh
+                </p>
+              </div>
+              <div className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-[76px]" data-node-id="120068:28919" data-name="Seat">
+                <div className="relative shrink-0 size-[56px]" data-node-id="I120068:28919;120009:26640" data-name="Ring">
+                  <div className="absolute left-0 size-[56px] top-0" data-node-id="I120068:28919;120009:26641" data-name="Ring stroke">
+                    <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgRingStroke} />
+                  </div>
+                  <div className="absolute left-[6px] size-[44px] top-[6px]" data-node-id="I120068:28919;120009:26642" data-name="Fill">
+                    <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgFill1} />
+                  </div>
+                  <p className="-translate-x-1/2 [word-break:break-word] absolute font-['Poppins:Medium'] h-[24px] leading-[24px] left-[28px] not-italic text-[#0b5b29] text-[16px] text-center top-[16px] w-[56px]" data-node-id="I120068:28919;120009:26643">
+                    MS
+                  </p>
+                </div>
+                <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[16px] not-italic overflow-hidden relative shrink-0 text-[#232323] text-[12px] text-center text-ellipsis w-[76px] whitespace-nowrap" data-node-id="I120068:28919;120009:26644">
+                  Maria
+                </p>
+              </div>
+              <Seat className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-[76px]" status="Empty" />
+              <div className="content-stretch flex flex-col gap-[6px] items-center relative shrink-0 w-[76px]" data-node-id="120068:28921" data-name="Seat">
+                <div className="relative shrink-0 size-[56px]" data-node-id="I120068:28921;120009:26646" data-name="Ring">
+                  <div className="absolute left-0 size-[56px] top-0" data-node-id="I120068:28921;120009:26647" data-name="Ring stroke">
+                    <img alt="" className="absolute block inset-0 max-w-none size-full" height="56" src={imgRingStroke1} width="56" />
+                  </div>
+                  <p className="-translate-x-1/2 [word-break:break-word] absolute font-['Poppins:Medium'] h-[24px] leading-[24px] left-[28px] not-italic text-[#575757] text-[16px] text-center top-[16px] w-[56px]" data-node-id="I120068:28921;120009:26648">
+                    6
+                  </p>
+                </div>
+                <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[16px] not-italic overflow-hidden relative shrink-0 text-[#575757] text-[12px] text-center text-ellipsis w-[76px] whitespace-nowrap" data-node-id="I120068:28921;120009:26649">
+                  Waiting
+                </p>
+              </div>
+            </div>
+            <SeatsStepper className="content-stretch flex gap-[8px] h-[36px] items-center relative shrink-0 w-full" />
+            <BonusBanner className="bg-[#e9ffea] content-stretch flex gap-[12px] items-start px-[16px] py-[12px] relative rounded-[8px] shrink-0 w-full" />
+          </div>
+        </div>
+        <div className="content-stretch flex flex-col items-start relative shrink-0 w-full" data-node-id="120068:28925" data-name="My Pre-Order">
+          <div className="bg-white content-stretch flex flex-col gap-[12px] items-start p-[16px] relative rounded-[12px] shrink-0 w-full" data-node-id="120068:28926" data-name="My pre-order">
+            <div className="content-stretch flex gap-[16px] items-center overflow-clip relative shrink-0 w-full" data-node-id="I120068:28926;120023:27708" data-name="Header">
+              <div className="bg-[#0f7a37] content-stretch flex items-center justify-center overflow-clip relative rounded-[24px] shrink-0 size-[48px]" data-node-id="I120068:28926;120023:27709" data-name="Avatar">
+                <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[24px] not-italic relative shrink-0 text-[16px] text-white whitespace-nowrap" data-node-id="I120068:28926;120023:27710">
+                  KT
+                </p>
+              </div>
+              <div className="[word-break:break-word] content-stretch flex flex-[1_0_0] gap-[6px] items-center leading-[24px] min-w-px not-italic overflow-clip relative" data-node-id="I120068:28926;120023:27711" data-name="Info">
+                <p className="font-['Poppins:Medium'] relative shrink-0 text-[#232323] text-[16px] whitespace-nowrap" data-node-id="I120068:28926;120023:27712">
+                  My Pre-Order
+                </p>
+                <p className="font-['Poppins:Regular'] relative shrink-0 text-[#575757] text-[14px] w-[64px]" data-node-id="I120068:28926;120023:27713">
+                  · 2 dishes
+                </p>
+              </div>
+              <div className="content-stretch flex items-center justify-center p-[8px] relative shrink-0 size-[32px]" data-node-id="I120068:28926;120023:27715" data-name="Toggle">
+                <div className="relative shrink-0 size-[24px]" data-node-id="I120068:28926;120023:27715;111935:60616" data-name="Icon/24/Close">
+                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIcon24ChevronUp} />
+                </div>
+              </div>
+            </div>
+            <div className="bg-[#efefef] h-px relative shrink-0 w-full" data-node-id="I120068:28926;120023:27716" data-name="Divider" />
+            <div className="content-stretch flex flex-col gap-[12px] items-start overflow-clip relative shrink-0 w-full" data-node-id="I120068:28926;120023:27717" data-name="Dishes">
+              <div className="content-stretch flex gap-[12px] items-center overflow-clip relative shrink-0 w-full" data-node-id="I120068:28926;120026:27789" data-name="My dish line">
+                <div className="relative rounded-[24px] shrink-0 size-[48px]" data-node-id="I120068:28926;120026:27790" data-name="Dish picture">
+                  <img alt="" className="absolute inset-0 max-w-none object-cover pointer-events-none rounded-[24px] size-full" src={imgDishPicture} />
+                </div>
+                <div className="content-stretch flex flex-[1_0_0] flex-col items-start min-w-px overflow-clip relative" data-node-id="I120068:28926;120026:27791" data-name="Name">
+                  <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[24px] not-italic relative shrink-0 text-[#232323] text-[14px] w-full" data-node-id="I120068:28926;120026:27792">
+                    Fresh Strawberry Mint Salad
+                  </p>
+                </div>
+                <div className="content-stretch flex flex-col gap-[4px] items-start justify-center relative rounded-[8px] shrink-0" data-node-id="I120068:28926;120026:27794" data-name="Quantity">
+                  <div className="content-stretch flex gap-[8px] items-center relative rounded-[8px] shrink-0" data-node-id="I120068:28926;120026:27794;110531:62513" data-name="Quantity">
+                    <div className="bg-white border-[#dadada] border-[1.4px] border-solid content-stretch flex gap-[8px] items-center justify-center px-[12px] py-[4px] relative rounded-[8px] shrink-0" data-node-id="I120068:28926;120026:27794;110531:62514" data-name="Button">
+                      <div className="[word-break:break-word] flex flex-col font-['Poppins:Medium'] justify-center leading-[0] not-italic relative shrink-0 text-[#898989] text-[14px] text-center whitespace-nowrap" data-node-id="I120068:28926;120026:27794;110531:62514;143:1870">
+                        <p className="leading-[24px]">-</p>
+                      </div>
+                    </div>
+                    <div className="content-stretch flex flex-col items-center justify-center relative shrink-0 w-[16px]" data-node-id="I120068:28926;120026:27794;110531:62515" data-name="Number">
+                      <div className="[word-break:break-word] flex flex-col font-['Poppins:Medium'] justify-center leading-[0] not-italic relative shrink-0 text-[#232323] text-[14px] text-center w-full" data-node-id="I120068:28926;120026:27794;110531:62516">
+                        <p className="leading-[24px]">1</p>
+                      </div>
+                    </div>
+                    <div className="bg-white border-[#0f7a37] border-[1.4px] border-solid content-stretch flex gap-[8px] items-center justify-center px-[12px] py-[4px] relative rounded-[8px] shrink-0" data-node-id="I120068:28926;120026:27794;110531:62517" data-name="Button">
+                      <div className="[word-break:break-word] flex flex-col font-['Poppins:Medium'] justify-center leading-[0] not-italic relative shrink-0 text-[#0f7a37] text-[14px] text-center whitespace-nowrap" data-node-id="I120068:28926;120026:27794;110531:62517;143:1849">
+                        <p className="leading-[24px]">+</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[24px] not-italic relative shrink-0 text-[#232323] text-[14px] text-right w-[40px]" data-node-id="I120068:28926;120026:27807">
+                  $17
+                </p>
+                <div className="content-stretch flex items-center justify-center p-[8px] relative shrink-0 size-[32px]" data-node-id="I120068:28926;120026:27808" data-name="Delete">
+                  <div className="relative shrink-0 size-[24px]" data-node-id="I120068:28926;120026:27808;111935:60616" data-name="Icon/24/Close">
+                    <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIcon24Delete} />
+                  </div>
+                </div>
+              </div>
+              <div className="content-stretch flex gap-[12px] items-center overflow-clip relative shrink-0 w-full" data-node-id="I120068:28926;120026:27812" data-name="My dish line">
+                <div className="relative rounded-[24px] shrink-0 size-[48px]" data-node-id="I120068:28926;120026:27813" data-name="Dish picture">
+                  <img alt="" className="absolute inset-0 max-w-none object-cover pointer-events-none rounded-[24px] size-full" src={imgDishPicture1} />
+                </div>
+                <div className="content-stretch flex flex-[1_0_0] flex-col items-start min-w-px overflow-clip relative" data-node-id="I120068:28926;120026:27814" data-name="Name">
+                  <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[24px] not-italic relative shrink-0 text-[#232323] text-[14px] w-full" data-node-id="I120068:28926;120026:27815">{`Roasted Sweet Potato & Lentil Salad`}</p>
+                </div>
+                <div className="content-stretch flex flex-col gap-[4px] items-start justify-center relative rounded-[8px] shrink-0" data-node-id="I120068:28926;120026:27817" data-name="Quantity">
+                  <div className="content-stretch flex gap-[8px] items-center relative rounded-[8px] shrink-0" data-node-id="I120068:28926;120026:27817;110531:62513" data-name="Quantity">
+                    <div className="bg-white border-[#dadada] border-[1.4px] border-solid content-stretch flex gap-[8px] items-center justify-center px-[12px] py-[4px] relative rounded-[8px] shrink-0" data-node-id="I120068:28926;120026:27817;110531:62514" data-name="Button">
+                      <div className="[word-break:break-word] flex flex-col font-['Poppins:Medium'] justify-center leading-[0] not-italic relative shrink-0 text-[#898989] text-[14px] text-center whitespace-nowrap" data-node-id="I120068:28926;120026:27817;110531:62514;143:1870">
+                        <p className="leading-[24px]">-</p>
+                      </div>
+                    </div>
+                    <div className="content-stretch flex flex-col items-center justify-center relative shrink-0 w-[16px]" data-node-id="I120068:28926;120026:27817;110531:62515" data-name="Number">
+                      <div className="[word-break:break-word] flex flex-col font-['Poppins:Medium'] justify-center leading-[0] not-italic relative shrink-0 text-[#232323] text-[14px] text-center w-full" data-node-id="I120068:28926;120026:27817;110531:62516">
+                        <p className="leading-[24px]">1</p>
+                      </div>
+                    </div>
+                    <div className="bg-white border-[#0f7a37] border-[1.4px] border-solid content-stretch flex gap-[8px] items-center justify-center px-[12px] py-[4px] relative rounded-[8px] shrink-0" data-node-id="I120068:28926;120026:27817;110531:62517" data-name="Button">
+                      <div className="[word-break:break-word] flex flex-col font-['Poppins:Medium'] justify-center leading-[0] not-italic relative shrink-0 text-[#0f7a37] text-[14px] text-center whitespace-nowrap" data-node-id="I120068:28926;120026:27817;110531:62517;143:1849">
+                        <p className="leading-[24px]">+</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[24px] not-italic relative shrink-0 text-[#232323] text-[14px] text-right w-[40px]" data-node-id="I120068:28926;120026:27830">
+                  $10
+                </p>
+                <div className="content-stretch flex items-center justify-center p-[8px] relative shrink-0 size-[32px]" data-node-id="I120068:28926;120026:27831" data-name="Delete">
+                  <div className="relative shrink-0 size-[24px]" data-node-id="I120068:28926;120026:27831;111935:60616" data-name="Icon/24/Close">
+                    <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIcon24Delete} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-[#efefef] h-px relative shrink-0 w-full" data-node-id="I120068:28926;120023:27736" data-name="Divider" />
+            <div className="content-stretch flex gap-[8px] items-center overflow-clip relative shrink-0 w-full" data-node-id="I120068:28926;120023:27737" data-name="Footer">
+              <div className="bg-white border-[#0f7a37] border-[1.4px] border-solid content-stretch flex gap-[8px] items-center justify-center px-[12px] py-[4px] relative rounded-[8px] shrink-0" data-node-id="I120068:28926;120037:28003" data-name="Add dishes">
+                <div className="relative shrink-0 size-[24px]" data-node-id="I120068:28926;120037:28003;143:1848" data-name="Icon/24/Plus">
+                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIcon24Plus} />
+                </div>
+                <div className="[word-break:break-word] flex flex-col font-['Poppins:Medium'] justify-center leading-[0] not-italic relative shrink-0 text-[#0f7a37] text-[14px] text-center whitespace-nowrap" data-node-id="I120068:28926;120037:28003;143:1849">
+                  <p className="leading-[24px]">Add dishes</p>
+                </div>
+              </div>
+              <div className="flex-[1_0_0] h-[10px] min-w-px relative" data-node-id="I120068:28926;120023:27739" data-name="Spacer" />
+              <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[24px] not-italic relative shrink-0 text-[#575757] text-[14px] whitespace-nowrap" data-node-id="I120068:28926;120023:27740">
+                Subtotal
+              </p>
+              <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[32px] not-italic relative shrink-0 text-[#0f7a37] text-[18px] whitespace-nowrap" data-node-id="I120068:28926;120023:27741">
+                $27
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="content-stretch flex flex-col gap-[16px] items-start relative shrink-0 w-full" data-node-id="120068:28927" data-name="Guests' Pre-Orders">
+          <div className="content-stretch flex gap-[8px] items-center overflow-clip relative shrink-0 w-full" data-node-id="120068:28928" data-name="Header">
+            <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[32px] not-italic relative shrink-0 text-[#232323] text-[18px] whitespace-nowrap" data-node-id="120068:28929">{`Guests' Pre-Orders`}</p>
+            <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[24px] not-italic relative shrink-0 text-[#575757] text-[14px] whitespace-nowrap" data-node-id="120068:28930">
+              · 3 guests
+            </p>
+            <div className="flex-[1_0_0] h-[8px] min-w-px relative" data-node-id="120068:28931" data-name="Spacer" />
+            <p className="[text-decoration-skip-ink:none] [text-underline-position:from-font] [word-break:break-word] decoration-from-font decoration-solid font-['Poppins:SemiBold'] leading-[24px] not-italic relative shrink-0 text-[#0f7a37] text-[14px] underline whitespace-nowrap" data-node-id="120068:28932">
+              Collapse all
+            </p>
+          </div>
+          <div className="bg-white content-stretch flex flex-col gap-[12px] items-start p-[16px] relative rounded-[12px] shrink-0 w-full" data-node-id="120068:28933" data-name="Guest pre-order">
+            <div className="content-stretch flex gap-[16px] items-center overflow-clip relative shrink-0 w-full" data-node-id="I120068:28933;120009:26681" data-name="Header">
+              <div className="bg-[#e9ffea] content-stretch flex items-center justify-center overflow-clip relative rounded-[24px] shrink-0 size-[48px]" data-node-id="I120068:28933;120009:26682" data-name="Avatar">
+                <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[24px] not-italic relative shrink-0 text-[#0b5b29] text-[16px] whitespace-nowrap" data-node-id="I120068:28933;120009:26683">
+                  AK
+                </p>
+              </div>
+              <div className="[word-break:break-word] content-stretch flex flex-[1_0_0] gap-[6px] items-center leading-[24px] min-w-px not-italic overflow-clip relative text-[14px]" data-node-id="I120068:28933;120009:26684" data-name="Info">
+                <p className="font-['Poppins:Medium'] relative shrink-0 text-[#232323] whitespace-nowrap" data-node-id="I120068:28933;120009:26685">
+                  Anna
+                </p>
+                <p className="font-['Poppins:Regular'] relative shrink-0 text-[#575757] w-[64px]" data-node-id="I120068:28933;120009:26686">
+                  · 2 dishes
+                </p>
+              </div>
+              <div className="content-stretch flex items-center justify-center p-[8px] relative shrink-0 size-[32px]" data-node-id="I120068:28933;120009:26688" data-name="Toggle">
+                <div className="relative shrink-0 size-[24px]" data-node-id="I120068:28933;120009:26688;111935:60616" data-name="Icon/24/Close">
+                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIcon24ChevronUp} />
+                </div>
+              </div>
+            </div>
+            <div className="bg-[#efefef] h-px relative shrink-0 w-full" data-node-id="I120068:28933;120009:26692" data-name="Divider" />
+            <div className="content-stretch flex flex-col gap-[12px] items-start overflow-clip relative shrink-0 w-full" data-node-id="I120068:28933;120009:26693" data-name="Dishes">
+              <div className="content-stretch flex gap-[12px] items-center overflow-clip relative shrink-0 w-full" data-node-id="I120068:28933;120009:26694" data-name="Dish line">
+                <div className="relative rounded-[24px] shrink-0 size-[48px]" data-node-id="I120068:28933;120009:26695" data-name="Dish picture">
+                  <img alt="" className="absolute inset-0 max-w-none object-cover pointer-events-none rounded-[24px] size-full" src={imgDishPicture2} />
+                </div>
+                <div className="content-stretch flex flex-[1_0_0] flex-col items-start min-w-px overflow-clip relative" data-node-id="I120068:28933;120009:26696" data-name="Name+qty">
+                  <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[24px] not-italic relative shrink-0 text-[#232323] text-[14px] w-full" data-node-id="I120068:28933;120009:26697">
+                    Spring Salad
+                  </p>
+                </div>
+                <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[24px] not-italic relative shrink-0 text-[#575757] text-[14px] whitespace-nowrap" data-node-id="I120068:28933;120009:26698">
+                  ×1
+                </p>
+                <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[24px] not-italic relative shrink-0 text-[#232323] text-[14px] whitespace-nowrap" data-node-id="I120068:28933;120009:26699">
+                  $19
+                </p>
+              </div>
+              <div className="content-stretch flex gap-[12px] items-center overflow-clip relative shrink-0 w-full" data-node-id="I120068:28933;120009:26700" data-name="Dish line">
+                <div className="relative rounded-[24px] shrink-0 size-[48px]" data-node-id="I120068:28933;120009:26701" data-name="Dish picture">
+                  <img alt="" className="absolute inset-0 max-w-none object-cover pointer-events-none rounded-[24px] size-full" src={imgDishPicture3} />
+                </div>
+                <div className="content-stretch flex flex-[1_0_0] flex-col items-start min-w-px overflow-clip relative" data-node-id="I120068:28933;120009:26702" data-name="Name+qty">
+                  <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[24px] not-italic relative shrink-0 text-[#232323] text-[14px] w-full" data-node-id="I120068:28933;120009:26703">
+                    Avocado Pine Nut Bowl
+                  </p>
+                </div>
+                <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[24px] not-italic relative shrink-0 text-[#575757] text-[14px] whitespace-nowrap" data-node-id="I120068:28933;120009:26704">
+                  ×1
+                </p>
+                <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[24px] not-italic relative shrink-0 text-[#232323] text-[14px] whitespace-nowrap" data-node-id="I120068:28933;120009:26705">
+                  $17
+                </p>
+              </div>
+            </div>
+            <div className="bg-[#efefef] h-px relative shrink-0 w-full" data-node-id="I120068:28933;120009:26712" data-name="Divider" />
+            <div className="content-stretch flex gap-[8px] items-center overflow-clip relative shrink-0 w-full" data-node-id="I120068:28933;120009:26713" data-name="Footer">
+              <div className="bg-white border-[#b70b0b] border-[1.4px] border-solid content-stretch flex gap-[8px] items-center justify-center px-[12px] py-[4px] relative rounded-[8px] shrink-0" data-node-id="I120068:28933;120026:27781" data-name="Remove guest">
+                <div className="[word-break:break-word] flex flex-col font-['Poppins:Medium'] justify-center leading-[0] not-italic relative shrink-0 text-[#b70b0b] text-[14px] text-center whitespace-nowrap" data-node-id="I120068:28933;120026:27781;143:1849">
+                  <p className="leading-[24px]">Remove Anna</p>
+                </div>
+              </div>
+              <div className="flex-[1_0_0] h-[10px] min-w-px relative" data-node-id="I120068:28933;120009:26725" data-name="Spacer" />
+              <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[24px] not-italic relative shrink-0 text-[#575757] text-[14px] whitespace-nowrap" data-node-id="I120068:28933;120009:26726">
+                Subtotal
+              </p>
+              <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[32px] not-italic relative shrink-0 text-[#0f7a37] text-[18px] whitespace-nowrap" data-node-id="I120068:28933;120009:26727">
+                $36
+              </p>
+            </div>
+          </div>
+          <div className="bg-white content-stretch flex flex-col items-start p-[16px] relative rounded-[12px] shrink-0 w-full" data-node-id="120068:28934" data-name="Guest pre-order">
+            <div className="content-stretch flex gap-[16px] items-center overflow-clip relative shrink-0 w-full" data-node-id="I120068:28934;120009:26669" data-name="Header">
+              <div className="bg-[#e9ffea] content-stretch flex items-center justify-center overflow-clip relative rounded-[24px] shrink-0 size-[48px]" data-node-id="I120068:28934;120009:26670" data-name="Avatar">
+                <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[24px] not-italic relative shrink-0 text-[#0b5b29] text-[16px] whitespace-nowrap" data-node-id="I120068:28934;120009:26671">
+                  OP
+                </p>
+              </div>
+              <div className="[word-break:break-word] content-stretch flex flex-[1_0_0] flex-col gap-[2px] items-start min-w-px not-italic overflow-clip relative whitespace-nowrap" data-node-id="I120068:28934;120009:26672" data-name="Info">
+                <p className="font-['Poppins:Medium'] leading-[24px] relative shrink-0 text-[#232323] text-[14px]" data-node-id="I120068:28934;120009:26673">
+                  Oleh
+                </p>
+                <p className="font-['Poppins:Regular'] leading-[16px] min-w-full overflow-hidden relative shrink-0 text-[#575757] text-[12px] text-ellipsis w-[min-content]" data-node-id="I120068:28934;120009:26674">{`Roasted Sweet Potato & Lentil Salad ×2`}</p>
+              </div>
+              <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[32px] not-italic relative shrink-0 text-[#0f7a37] text-[18px] whitespace-nowrap" data-node-id="I120068:28934;120009:26675">
+                $20
+              </p>
+              <div className="content-stretch flex items-center justify-center p-[8px] relative shrink-0 size-[32px]" data-node-id="I120068:28934;120009:26676" data-name="Toggle">
+                <div className="relative shrink-0 size-[24px]" data-node-id="I120068:28934;120009:26676;111935:60616" data-name="Icon/24/Close">
+                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIcon24ChevronDown} />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white content-stretch flex flex-col items-start p-[16px] relative rounded-[12px] shrink-0 w-full" data-node-id="120068:28935" data-name="Guest pre-order">
+            <div className="content-stretch flex gap-[16px] items-center overflow-clip relative shrink-0 w-full" data-node-id="I120068:28935;120009:26669" data-name="Header">
+              <div className="bg-[#e9ffea] content-stretch flex items-center justify-center overflow-clip relative rounded-[24px] shrink-0 size-[48px]" data-node-id="I120068:28935;120009:26670" data-name="Avatar">
+                <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[24px] not-italic relative shrink-0 text-[#0b5b29] text-[16px] whitespace-nowrap" data-node-id="I120068:28935;120009:26671">
+                  MS
+                </p>
+              </div>
+              <div className="[word-break:break-word] content-stretch flex flex-[1_0_0] flex-col gap-[2px] items-start min-w-px not-italic overflow-clip relative whitespace-nowrap" data-node-id="I120068:28935;120009:26672" data-name="Info">
+                <p className="font-['Poppins:Medium'] leading-[24px] relative shrink-0 text-[#232323] text-[14px]" data-node-id="I120068:28935;120009:26673">
+                  Maria
+                </p>
+                <p className="font-['Poppins:Regular'] leading-[16px] min-w-full overflow-hidden relative shrink-0 text-[#575757] text-[12px] text-ellipsis w-[min-content]" data-node-id="I120068:28935;120009:26674">
+                  Fresh Strawberry Mint Salad
+                </p>
+              </div>
+              <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[32px] not-italic relative shrink-0 text-[#0f7a37] text-[18px] whitespace-nowrap" data-node-id="I120068:28935;120009:26675">
+                $17
+              </p>
+              <div className="content-stretch flex items-center justify-center p-[8px] relative shrink-0 size-[32px]" data-node-id="I120068:28935;120009:26676" data-name="Toggle">
+                <div className="relative shrink-0 size-[24px]" data-node-id="I120068:28935;120009:26676;111935:60616" data-name="Icon/24/Close">
+                  <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIcon24ChevronDown} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="absolute bg-[#f7f7f7] bottom-[40px] content-stretch flex flex-col gap-[16px] items-start left-[40px] right-[40px]" data-node-id="120068:28895" data-name="Bottom">
+        <div className="border border-[#d9e5d9] border-solid h-px relative shrink-0 w-full" data-node-id="120068:28896" data-name="Divider" />
+        <div className="content-stretch flex gap-[24px] items-center overflow-clip relative shrink-0 w-full" data-node-id="120069:29914" data-name="Total row">
+          <div className="content-stretch flex flex-[1_0_0] flex-col gap-[2px] items-start min-w-px overflow-clip relative" data-node-id="120069:29915" data-name="Total">
+            <div className="content-stretch flex gap-[12px] items-center overflow-clip relative shrink-0 w-full" data-node-id="120069:29916" data-name="Grand total">
+              <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[40px] not-italic relative shrink-0 text-[#232323] text-[26px] whitespace-nowrap" data-node-id="120069:29917">
+                Grand Total
+              </p>
+              <div className="flex-[1_0_0] h-[8px] min-w-px relative" data-node-id="120069:29918" data-name="Spacer" />
+              <p className="[word-break:break-word] font-['Poppins:Medium'] leading-[40px] not-italic relative shrink-0 text-[#0b5b29] text-[26px] whitespace-nowrap" data-node-id="120069:29919">
+                $100
+              </p>
+            </div>
+            <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[16px] not-italic relative shrink-0 text-[#575757] text-[12px] whitespace-pre" data-node-id="120069:29920">{`My pre-order $27  ·  Guests' pre-orders (3) $73`}</p>
+            <p className="[word-break:break-word] font-['Poppins:Regular'] leading-[16px] not-italic relative shrink-0 text-[#575757] text-[12px] whitespace-nowrap" data-node-id="120069:29921">
+              Group discount −10% unlocks at 6 of 6 (−$10)
+            </p>
+          </div>
+          <div className="flex flex-row items-center self-stretch" data-node-id="120068:28902">
+            <div className="content-stretch flex gap-[8px] h-full items-center justify-center px-[24px] py-[8px] relative rounded-[8px] shrink-0 w-[280px]" style={{ backgroundImage: "linear-gradient(-87.68108094293163deg, rgb(15, 122, 55) 0%, rgb(11, 91, 41) 98.288%)" }} data-name="Button">
+              <div className="[word-break:break-word] flex flex-col font-['Poppins:SemiBold'] justify-center leading-[0] not-italic relative shrink-0 text-[16px] text-center text-white whitespace-nowrap" data-node-id="I120068:28902;90:358">
+                <p className="leading-[24px]">Submit Pre-Order</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="absolute content-stretch flex items-center p-[8px] right-[16px] top-[16px]" data-node-id="120068:28903" data-name="Button Icon">
+        <div className="relative shrink-0 size-[24px]" data-node-id="I120068:28903;111683:88375" data-name="Icon/24/Close">
+          <img alt="" className="absolute block inset-0 max-w-none size-full" src={imgIcon24Close} />
+        </div>
+      </div>
+      <div className="absolute bg-[#e0e0e0] h-[498px] left-[807px] rounded-[2px] top-[149px] w-[4px]" data-node-id="120069:29922" data-name="Scrollbar track" />
+      <div className="absolute bg-[#9e9e9e] h-[220px] left-[807px] rounded-[2px] top-[149px] w-[4px]" data-node-id="120069:29923" data-name="Scrollbar thumb" />
+    </div>
+  );
+}
+SUPER CRITICAL: The generated React+Tailwind code MUST be converted to match the target project's technology stack and styling system.
+1. Analyze the target codebase to identify: technology stack, styling approach, component patterns, and design tokens
+2. Convert React syntax to the target framework/library
+3. Transform all Tailwind classes to the target styling system while preserving exact visual design
+4. Follow the project's existing patterns and conventions
+DO NOT install any Tailwind as a dependency unless the user instructs you to do so.
+
+Node ids have been added to the code as data attributes, e.g. `data-node-id="1:2"`.
+These styles are contained in the design: Neutral/Neutral 900: #232323, H3: Font(family: "Poppins", style: Medium, size: 26, weight: 500, lineHeight: 40, letterSpacing: 0), New Green/Green600: #0F7A37, Body: Font(family: "Poppins", style: Regular, size: 14, weight: 400, lineHeight: 24, letterSpacing: 0), BG/BG Green: #D9E5D9, H4: Font(family: "Poppins", style: Medium, size: 18, weight: 500, lineHeight: 32, letterSpacing: 0), Neutral/Neutral 600: #575757, Button S: Font(family: "Poppins", style: Medium, size: 14, weight: 500, lineHeight: 24, letterSpacing: 0), Neutral/Neutral 0: #FFFFFF, H5: Font(family: "Poppins", style: Medium, size: 16, weight: 500, lineHeight: 24, letterSpacing: 0), Caption: Font(family: "Poppins", style: Regular, size: 12, weight: 400, lineHeight: 16, letterSpacing: 0), New Green/Green 100: #E9FFEA, New Green/Green800: #0B5B29, Neutral/Neutral 400: #898989, Body bold: Font(family: "Poppins", style: Medium, size: 14, weight: 500, lineHeight: 24, letterSpacing: 0), Neutral/Neutral 200: #DADADA, New Green/Green 150: #C5E8C7, Neutral/Neutral 700: #454444, Link: Font(family: "Poppins", style: SemiBold, size: 14, weight: 600, lineHeight: 24, letterSpacing: 0), Red/Red 400: #B70B0B, Button L: Font(family: "Poppins", style: SemiBold, size: 16, weight: 600, lineHeight: 24, letterSpacing: 0), New Green/Gradient: , Neutral/Neutral 100: #F7F7F7, Grey Shadow: Effect(type: DROP_SHADOW, color: #DADADAB2, offset: (0, 0), radius: 10, spread: 4).
+Component descriptions: The following components have usage descriptions or documentation links defined in Figma. These descriptions provide important context about the intended usage, best practices, and any constraints for each component. Follow these guidelines when implementing or using these components.
+
+## Seat
+**Node ID:** 120009:26667
+
+Seat of the reserved table. Owner/Ordered show initials + name; Empty shows seat number + "Waiting". Hover variants reveal the remove (×) control — owner seat cannot be removed.
+
+## Seats stepper
+**Node ID:** 120037:28034
+
+Removes an empty (anonymous) seat. "+" is only active below the booked size, so it also restores a removed seat. Hidden when every seat has ordered.
+
+## My pre-order
+**Node ID:** 120023:27800
+
+Owner's own pre-order in the same card style as guests. Collapsed: dish preview + total. Expanded: editable dish cards (qty, delete) + subtotal at the bottom.
+
+## Guest pre-order
+**Node ID:** 120009:26728
+
+A guest's pre-order. Collapsed: avatar, name, dish preview, total. Expanded: dish lines, Cancel guest, subtotal at the bottom.
+The generated code contains image and SVG URL constants, e.g. const image = 'https://www.figma.com/api/mcp/asset/550e8400-e29b-41d4-a716-446655440000.png'. These URLs are temporary download sources and expire after 7 days. Download each asset into the project with curl -L, then replace its URL in the generated code with a reference to the downloaded asset. Never use the temporary URLs as runtime image sources.

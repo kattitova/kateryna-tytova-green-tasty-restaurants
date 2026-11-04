@@ -1,0 +1,6 @@
+# FE-6 tests r1
+File: frontend/restaurant-frontend-app/src/app/components/reservations/group-pre-order-modal/group-pre-order-modal.component.spec.ts (new describe 'actions'; GuestInviteService spy added; render() takes optional sessions).
+Tests (7): copy link writes <origin>/join/t1 and shows "Link copied"; Remove Anna -> dialog confirm calls removeGuest$('g1','guest-anna') and reloads (getSessions$ x2); Keep -> no call, dialog closed; submit with all seats ordered calls submit$('g1','r1') without dialog; 2 empty seats -> dialog "2 seats haven't pre-ordered yet", Wait for guests -> no call; Confirm anyway -> submit$ once; submit disabled when orderedCount 0 (passes already: the scaffold template has [disabled]="!canSubmit").
+tsc -p tsconfig.spec.json --noEmit: exit 0.
+Karma ChromeHeadless: 395 total, 6 failed, 389 success. Red reasons: buttons "Copy pre-order link" / "Remove Anna" missing, no confirm dialog rendered, submit$ not called.
+Notes for the implementer: test finds buttons by trimmed text; expands the guest row by clicking the row button with aria-expanded that contains the name; dialog buttons are looked up inside app-confirm-dialog (the row "Remove Anna" button and the dialog confirm have the same text). Dialog title for 2 empty of 5 seats: "2 seats haven't pre-ordered yet". Clipboard: navigator.clipboard.writeText.

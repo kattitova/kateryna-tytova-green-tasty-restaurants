@@ -1,0 +1,6 @@
+# FE-7 tests r1
+File: frontend/restaurant-frontend-app/src/app/components/reservations/group-pre-order-modal/group-pre-order-modal.component.spec.ts (new describe 'owner dishes'; PreOrdersService and CartStateService spies, real Router with navigate spied).
+Tests (2): "Increase Caesar Salad" (aria-label) after expanding "My Pre-Order" calls editPreOrderByReservationId('r1', { orderItems: [dishA x3, dishB x1] }) and reloads (getSessions$ x2); "Add my dishes" navigates to ['/menu'] with { queryParams: buildPreOrderQueryParams(reservation) } and emits closed { changed: false }.
+tsc -p tsconfig.spec.json --noEmit: exit 0.
+Karma ChromeHeadless: 397 total, 2 failed, 395 success. Red reason: the "Increase Caesar Salad" and "Add my dishes" buttons do not exist yet (TypeError reading 'click' of undefined). Existing tests pass.
+Notes for the implementer: the edit call is matched with objectContaining on dish.id and quantity; the "Add my dishes" button is found by text containing "Add my dishes" and shown when the owner has not ordered and the group is Open (the test status has orderedCount 2 so the empty owner is the only difference). The test expands the owner row by clicking the button that contains "My Pre-Order" before looking for "Increase ...".
