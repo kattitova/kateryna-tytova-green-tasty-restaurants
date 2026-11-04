@@ -23,11 +23,12 @@ public static class ReservationMapper
     };
 
 
-    public static ReservationResponse ToReservationResponse(Reservation reservation, string address, Order? order = null, string restaurantName = "Green & Tasty", bool guestInviteLinkAvailable = false)
+    public static ReservationResponse ToReservationResponse(Reservation reservation, string address, Order? order = null, string restaurantName = "Green & Tasty", bool guestInviteLinkAvailable = false, int? tableNumber = null)
     => new()
     {
         Id = reservation.Id,
         TableId = reservation.TableId,
+        TableNumber = tableNumber,
         StartTime = reservation.StartTime,
         EndTime = reservation.EndTime,
         GuestCount = reservation.GuestCount,

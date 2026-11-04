@@ -454,6 +454,7 @@ Response: `201 Created`
 {
   "id": "string",
   "tableId": "string",
+  "tableNumber": 3,
   "startTime": "2026-08-07T19:00:00Z",
   "endTime": "2026-08-07T20:30:00Z",
   "guestCount": 4,
@@ -473,6 +474,7 @@ Response: `200 OK`
   {
     "id": "string",
     "tableId": "string",
+    "tableNumber": 3,
     "startTime": "2026-08-07T19:00:00Z",
     "endTime": "2026-08-07T20:30:00Z",
     "guestCount": 4,
@@ -485,6 +487,8 @@ Response: `200 OK`
   }
 ]
 ```
+
+`tableNumber` is the number of the table in its location. It is `null` when the table record is missing. `POST /reservations`, `GET /reservations` and `PUT /reservations` return `tableNumber`. `GET /reservations/{reservationId}` does not return it.
 
 ### `GET` /reservations/{reservationId}
 Response: `200 OK`
@@ -597,6 +601,8 @@ Response: `200 OK`
 }
 ```
 
+The endpoint also sets the active pre-order of the reservation to `Cancelled`. A reservation without a pre-order is not an error.
+
 ### `PUT` /reservations
 Request body:
 ```json
@@ -613,6 +619,7 @@ Response: `200 OK`
 {
   "id": "string",
   "tableId": "string",
+  "tableNumber": 3,
   "startTime": "2026-08-07T19:15:00Z",
   "endTime": "2026-08-07T20:45:00Z",
   "guestCount": 5,

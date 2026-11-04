@@ -72,7 +72,7 @@ public class ReservationService : IReservationService
         if (request.GuestCount >= 2)
             await _groupReservationService.CreateGroupReservationAsync(reservation.Id);
 
-        return ReservationMapper.ToReservationResponse(reservation, location.Address);
+        return ReservationMapper.ToReservationResponse(reservation, location.Address, tableNumber: table.TableNumber);
     }
 
     public async Task<string> GetLocationIdForReservation(string reservationId)

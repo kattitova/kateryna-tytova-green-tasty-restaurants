@@ -25,6 +25,12 @@ public interface IOrderService
 
     Task CancelPreOrderAsync(string customerId, string reservationId, ILambdaContext context);
 
+    /// <summary>
+    /// Cancels the active pre-order of a reservation, if there is one. Call it after the reservation is cancelled.
+    /// The caller is responsible for the authorization check.
+    /// </summary>
+    Task CancelPreOrderForReservationAsync(string reservationId);
+
     Task SubmitPreOrderAsync(string customerId, string reservationId, ILambdaContext context);
 
     Task UnSubmitPreOrderAsync(string customerId, string reservationId, ILambdaContext context);

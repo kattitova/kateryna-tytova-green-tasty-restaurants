@@ -181,6 +181,19 @@ public class OrderService : IOrderService
         context.Logger.LogLine($"Pre-order {order.OrderId} for reservation {reservationId} cancelled by customer {customerId}.");
     }
 
+    public async Task CancelPreOrderForReservationAsync(string reservationId)
+    {
+        var order = await GetActiveOrderByReservationIdAsync(reservationId, throwIfNotFound: false);
+
+        if (order is null)
+        {
+            return;
+        }
+
+        order.Status = OrderStatus.Cancelled;
+        await _orderRepository.SaveOrderAsync(order);
+    }
+
     public async Task SubmitPreOrderAsync(string customerId, string reservationId, ILambdaContext context)
     {
         var reservation = await LoadReservationAsync(reservationId);

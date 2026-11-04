@@ -10,6 +10,7 @@ using APIHandler.Models.Users;
 using APIHandler.Repositories.GroupReservations;
 using APIHandler.Repositories.GuestSessions;
 using APIHandler.Repositories.Reservations;
+using APIHandler.Repositories.Tables;
 using APIHandler.Services.GroupReservations;
 using APIHandler.Services.Locations;
 using APIHandler.Services.Orders;
@@ -29,17 +30,20 @@ public class GetReservationsForUserHandler : IApiRequestHandler
     private readonly ILocationService _locationService;
     private readonly IOrderService _orderService;
     private readonly IGroupReservationRepository _groupReservationRepository;
+    private readonly ITableRepository _tableRepository;
 
     public GetReservationsForUserHandler(
         IReservationRepository reservationRepository,
         ILocationService locationService,
         IOrderService orderService,
-        IGroupReservationRepository groupReservationRepository)
+        IGroupReservationRepository groupReservationRepository,
+        ITableRepository tableRepository)
     {
         _reservationRepository = reservationRepository ?? throw new ArgumentNullException(nameof(reservationRepository));
         _locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
         _orderService = orderService ?? throw new ArgumentNullException(nameof(orderService));
         _groupReservationRepository = groupReservationRepository ?? throw new ArgumentNullException(nameof(groupReservationRepository));
+        _tableRepository = tableRepository ?? throw new ArgumentNullException(nameof(tableRepository));
     }
 
     public async Task<APIGatewayProxyResponse> HandleRequest(APIGatewayProxyRequest request, ILambdaContext context)
@@ -127,12 +131,27 @@ public class GetReservationsForUserHandler : IApiRequestHandler
         }
     }
 
+    // The table number is display data. A failed read gives null and must not drop the reservation from the list.
+    private async Task<int?> TryGetTableNumberAsync(string tableId)
+    {
+        try
+        {
+            var table = await _tableRepository.GetTableByIdAsync(tableId);
+            return table?.TableNumber;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     private async Task<ReservationResponse> ConvertToResponse(Reservation reservation)
     {
         try
         {
             var location = await _locationService.GetLocationByTableIdAsync(reservation.TableId);
             var reservationOrder = await _orderService.GetOrderByReservationIdAsync(reservation.Id);
+            var tableNumber = await TryGetTableNumberAsync(reservation.TableId);
 
             bool guestInviteLinkAvailable = false;
             if (reservation.GuestCount > 1 && reservation.Status != ReservationStatus.Completed)
@@ -142,7 +161,12 @@ public class GetReservationsForUserHandler : IApiRequestHandler
                     guestInviteLinkAvailable = groupReservation.Status == GroupReservationStatus.Open;
             }
 
-            return ReservationMapper.ToReservationResponse(reservation, location.Address, reservationOrder, guestInviteLinkAvailable: guestInviteLinkAvailable);
+            return ReservationMapper.ToReservationResponse(
+                reservation,
+                location.Address,
+                reservationOrder,
+                guestInviteLinkAvailable: guestInviteLinkAvailable,
+                tableNumber: tableNumber);
         }
         catch (Exception ex)
         {

@@ -228,6 +228,41 @@ public class OrderServiceTests
     }
 
     [Theory]
+    [InlineData(OrderStatus.Created)]
+    [InlineData(OrderStatus.Submitted)]
+    [InlineData(OrderStatus.SubmittedByCustomer)]
+    public async Task CancelPreOrderForReservationAsync_ShouldCancelActiveOrder(OrderStatus status)
+    {
+        var order = new Order
+        {
+            OrderId = "order-1",
+            CustomerId = "customer-1",
+            ReservationId = "res-1",
+            ReservationAddress = "48 Rustaveli Avenue",
+            ReservationTime = "12:00",
+            Dishes = [],
+            Status = status,
+        };
+        _mockOrderRepository.Setup(r => r.GetOrderByReservationIdAsync("res-1")).ReturnsAsync(order);
+
+        await _orderService.CancelPreOrderForReservationAsync("res-1");
+
+        _mockOrderRepository.Verify(
+            r => r.SaveOrderAsync(It.Is<Order>(o => o.OrderId == "order-1" && o.Status == OrderStatus.Cancelled)),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CancelPreOrderForReservationAsync_ShouldDoNothing_WhenNoActiveOrder()
+    {
+        _mockOrderRepository.Setup(r => r.GetOrderByReservationIdAsync("res-1")).ReturnsAsync((Order?)null);
+
+        await _orderService.CancelPreOrderForReservationAsync("res-1");
+
+        _mockOrderRepository.Verify(r => r.SaveOrderAsync(It.IsAny<Order>()), Times.Never);
+    }
+
+    [Theory]
     [AutoData]
     public async Task GetOrderByReservationIdAsync_ShouldReturnOrder_WhenFoundAndNotCancelled(Order order)
     {

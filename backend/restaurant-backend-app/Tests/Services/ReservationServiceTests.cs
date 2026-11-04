@@ -91,6 +91,7 @@ public class ReservationServiceTests
                 && r.Status == ReservationStatus.Reserved
                 && r.CreatedByWaiter == false
                 && r.CustomerId == callerId)), Times.Once());
+        Assert.Equal(table.TableNumber, result.TableNumber);
     }
 
     [Theory, AutoData]

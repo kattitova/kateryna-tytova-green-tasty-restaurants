@@ -8,6 +8,7 @@ using APIHandler.Exceptions;
 using APIHandler.Helpers;
 using APIHandler.Models.Reservations;
 using APIHandler.Models.Users;
+using APIHandler.Services.Orders;
 using APIHandler.Services.Reservations;
 using APIHandler.Services.Waiters;
 using System;
@@ -21,11 +22,13 @@ public class CancelReservationHandler : IApiRequestHandler
 {
     private readonly IWaiterService _waiterService;
     private readonly IReservationService _reservationService;
+    private readonly IOrderService _orderService;
 
-    public CancelReservationHandler(IWaiterService waiterService, IReservationService reservationService)
+    public CancelReservationHandler(IWaiterService waiterService, IReservationService reservationService, IOrderService orderService)
     {
         _waiterService = waiterService ?? throw new ArgumentNullException(nameof(waiterService));
         _reservationService = reservationService ?? throw new ArgumentNullException(nameof(reservationService));
+        _orderService = orderService ?? throw new ArgumentNullException(nameof(orderService));
     }
 
     public async Task<APIGatewayProxyResponse> HandleRequest(APIGatewayProxyRequest request, ILambdaContext context)
@@ -61,6 +64,8 @@ public class CancelReservationHandler : IApiRequestHandler
             reservation.Status = ReservationStatus.Cancelled;
             await _reservationService.UpdateReservationAsync(reservation);
 
+            await CancelPreOrderBestEffortAsync(reservation.Id, context);
+
             var waiter = await _waiterService.FindWaiterByReservationIdAsync(reservation.Id);
             if (waiter != null)
             {
@@ -77,6 +82,22 @@ public class CancelReservationHandler : IApiRequestHandler
         catch (AmazonDynamoDBException ex)
         {
             return ResponseBuilder.CreateErrorResponse(503, "Database error occurred", context.Logger, ex);
+        }
+    }
+
+    // A cancelled reservation must not keep an active pre-order: it would stay in the customer's cart.
+    // The reservation is already saved as Cancelled here, so a failure must not turn the response into an error.
+    // The frontend cart also hides pre-orders of cancelled reservations.
+    private async Task CancelPreOrderBestEffortAsync(string reservationId, ILambdaContext context)
+    {
+        try
+        {
+            await _orderService.CancelPreOrderForReservationAsync(reservationId);
+            context.Logger.LogLine($"Active pre-order (if any) for reservation {reservationId} cancelled with the reservation.");
+        }
+        catch (Exception ex)
+        {
+            context.Logger.LogError($"Could not cancel the pre-order for cancelled reservation {reservationId}: {ex.Message}");
         }
     }
 

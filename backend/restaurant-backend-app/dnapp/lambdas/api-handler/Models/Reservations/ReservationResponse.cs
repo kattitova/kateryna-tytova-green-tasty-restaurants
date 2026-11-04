@@ -12,6 +12,10 @@ public class ReservationResponse
     [JsonPropertyName("tableId")]
     public required string TableId { get; set; }
 
+    /// <summary>The number of the table in its location. Null when the table was not loaded.</summary>
+    [JsonPropertyName("tableNumber")]
+    public int? TableNumber { get; set; }
+
     [JsonPropertyName("startTime")]
     public DateTime StartTime { get; set; }
 
