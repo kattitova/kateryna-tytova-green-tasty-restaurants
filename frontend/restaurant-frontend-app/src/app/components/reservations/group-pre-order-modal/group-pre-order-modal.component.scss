@@ -72,8 +72,13 @@
 .card-header,
 .section-header {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+
+  .muted {
+    white-space: nowrap;
+  }
 }
 
 .card-title {
@@ -82,6 +87,7 @@
   font-weight: 500;
   line-height: 32px;
   color: color.$neutral-900;
+  white-space: nowrap;
 }
 
 .seats-wrapper {
@@ -285,10 +291,13 @@
 }
 
 .row-name {
+  overflow: hidden;
   font-size: 16px;
   font-weight: 500;
   line-height: 24px;
   color: color.$neutral-900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .row-sub {
@@ -304,11 +313,13 @@
   font-size: 16px;
   font-weight: 500;
   color: color.$green-600;
+  white-space: nowrap;
 }
 
 .waiting {
   font-size: 14px;
   color: color.$neutral-600;
+  white-space: nowrap;
 }
 
 .chevron {
@@ -347,6 +358,10 @@
   }
 }
 
+.section-header--guests {
+  padding: 0 16px;
+}
+
 .link {
   padding: 0;
   font: inherit;
@@ -354,6 +369,7 @@
   font-weight: 600;
   color: color.$green-600;
   text-decoration: underline;
+  white-space: nowrap;
   background: none;
   border: 0;
   cursor: pointer;
@@ -404,16 +420,29 @@
   color: color.$neutral-900;
 }
 
-.breakdown,
-.bonus-line {
+.breakdown {
+  max-width: 360px;
   margin: 0;
+  padding: 0;
   font-size: 12px;
   line-height: 16px;
   color: color.$neutral-600;
+  list-style: none;
 }
 
-.bonus-line--success {
+.breakdown-row {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.breakdown-row--success {
   color: color.$green-600;
+}
+
+.breakdown-amount {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .grand-total {
@@ -426,11 +455,8 @@
   min-width: 268px;
 }
 
-.copy {
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-  margin-left: auto;
+.copy,
+.add-dishes {
   padding: 4px 12px;
   font: inherit;
   font-size: 14px;
@@ -440,6 +466,14 @@
   border: 1.4px solid color.$green-600;
   border-radius: 8px;
   cursor: pointer;
+}
+
+.copy {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+  white-space: nowrap;
 
   img {
     width: 16px;
@@ -457,18 +491,6 @@
 
 .row-main--static {
   cursor: default;
-}
-
-.add-dishes {
-  padding: 4px 12px;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  color: color.$green-600;
-  background: color.$neutral-0;
-  border: 1.4px solid color.$green-600;
-  border-radius: 8px;
-  cursor: pointer;
 }
 
 .dish-edit {
@@ -513,4 +535,62 @@
 .dish-price {
   min-width: 56px;
   text-align: right;
+}
+
+@media (max-width: 560px), (max-height: 500px) {
+  .scroll {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 560px) {
+  .details {
+    gap: 4px 12px;
+
+    li:first-child {
+      flex-basis: 100%;
+    }
+  }
+
+  .card,
+  .row-main {
+    padding: 12px;
+  }
+
+  .section-header--guests {
+    padding: 0 12px;
+  }
+
+  .row-main {
+    gap: 12px;
+  }
+
+  .avatar {
+    flex-basis: 40px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .card-title {
+    font-size: 16px;
+  }
+
+  .dish-list {
+    padding: 0 12px 12px;
+  }
+
+  .dish-edit {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+
+  .dish-name {
+    flex-basis: calc(100% - 52px);
+  }
+
+  .submit {
+    flex-basis: 100%;
+    min-width: 0;
+  }
 }

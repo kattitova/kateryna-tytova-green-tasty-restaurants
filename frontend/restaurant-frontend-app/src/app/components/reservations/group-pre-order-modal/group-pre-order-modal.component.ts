@@ -34,6 +34,8 @@ import { buildInviteLink } from '@app/shared/helpers/invite-link';
 import { buildPreOrderQueryParams } from '@app/shared/helpers/pre-order-navigation';
 import { ConfirmDialogComponent } from '@app/shared/custom-components/confirm-dialog/confirm-dialog.component';
 
+import { BreakdownRow } from './models';
+
 type LoadState = 'loading' | 'error' | 'content';
 type BonusTone = 'progress' | 'success' | 'muted';
 
@@ -141,9 +143,9 @@ export class GroupPreOrderModalComponent implements OnInit {
     return view ? this.buildBonusBox(view) : null;
   });
 
-  protected readonly footerBonusLine = computed<string>(() => {
+  protected readonly breakdownRows = computed<BreakdownRow[]>(() => {
     const view = this.view();
-    return view ? this.buildFooterBonusLine(view) : '';
+    return view ? this.buildBreakdownRows(view) : [];
   });
 
   ngOnInit(): void {
@@ -458,22 +460,45 @@ export class GroupPreOrderModalComponent implements OnInit {
     };
   }
 
-  private buildFooterBonusLine(view: GroupPreOrderView): string {
+  private buildBreakdownRows(view: GroupPreOrderView): BreakdownRow[] {
     const { bonus } = view;
     const money = (value: number) => formatCurrency(value, this.locale, '$');
+    const rows: BreakdownRow[] = [
+      { label: 'My pre-order', amount: view.ownerOrdered ? money(view.ownerSubtotal) : '—', tone: 'muted' },
+      {
+        label: `Guests' pre-orders (${view.orderedGuestCount})`,
+        amount: money(view.guestsSubtotal),
+        tone: 'muted',
+      },
+    ];
 
     if (bonus.state === 'InProgress') {
-      return bonus.tier === 'FreeDessert'
-        ? `Free dessert unlocks at ${view.seatCount} of ${view.seatCount}`
-        : `Group discount ${MINUS}10% unlocks at ${view.seatCount} of ${view.seatCount} (${MINUS}${money(view.unlockDiscountAmount)})`;
+      rows.push(
+        bonus.tier === 'FreeDessert'
+          ? { label: `Free dessert unlocks at ${view.seatCount} of ${view.seatCount}`, amount: null, tone: 'muted' }
+          : {
+              label: `Group discount ${MINUS}10% unlocks at ${view.seatCount} of ${view.seatCount}`,
+              amount: `${MINUS}${money(view.unlockDiscountAmount)}`,
+              tone: 'muted',
+            },
+      );
+    } else if (bonus.state === 'Achieved') {
+      if (bonus.tier === 'FreeDessert') {
+        rows.push({ label: 'Free dessert for the table', amount: null, tone: 'success' });
+      } else {
+        rows.push(
+          { label: 'Total before discount', amount: money(view.grandTotal), tone: 'success' },
+          {
+            label: `Group discount ${MINUS}10% applied`,
+            amount: `${MINUS}${money(view.discountAmount)}`,
+            tone: 'success',
+          },
+        );
+      }
+    } else {
+      rows.push({ label: 'Group discount — deadline passed', amount: null, tone: 'muted' });
     }
 
-    if (bonus.state === 'Achieved') {
-      return bonus.tier === 'FreeDessert'
-        ? 'Free dessert for the table'
-        : `Total before discount ${money(view.grandTotal)} · Group discount ${MINUS}10% applied (${MINUS}${money(view.discountAmount)})`;
-    }
-
-    return 'Group discount — deadline passed';
+    return rows;
   }
 }

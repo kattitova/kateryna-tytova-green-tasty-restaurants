@@ -42,3 +42,22 @@
   background: color.$red-400;
   border-color: color.$red-400;
 }
+
+// Keep the dialog in view when the modal card scrolls (narrow or short screens).
+@media (max-width: 560px), (max-height: 500px) {
+  .overlay {
+    position: fixed;
+    box-sizing: border-box;
+    padding: 16px;
+    border-radius: 0;
+  }
+
+  .dialog {
+    max-height: 100%;
+    overflow-y: auto;
+  }
+
+  .dialog-actions {
+    flex-wrap: wrap;
+  }
+}

@@ -1,8 +1,6 @@
 <app-modal width="800px" title="Group Pre-Order" (closed)="onClose()">
-  @if (view(); as v) {
-    @if (v.isSubmitted) {
-      <span modal-title-addon class="sent-badge">Sent to Restaurant</span>
-    }
+  @if (view()?.isSubmitted) {
+    <span modal-title-addon class="sent-badge">Sent to Restaurant</span>
   }
 
   @switch (state()) {
@@ -218,7 +216,7 @@
             </section>
           }
 
-          <div class="section-header">
+          <div class="section-header section-header--guests">
             <h3 class="card-title">Guests' Pre-Orders</h3>
             @if (guests().length > 0) {
               <span class="muted">
@@ -285,17 +283,20 @@
         <footer class="footer">
           <div class="footer-totals">
             <p class="grand-label">Grand Total</p>
-            <p class="breakdown">
-              My pre-order {{ v.ownerOrdered ? (v.ownerSubtotal | currency) : '—' }} &middot; Guests' pre-orders
-              ({{ v.orderedGuestCount }}) {{ v.guestsSubtotal | currency }}
-            </p>
-            <p
-              class="bonus-line"
-              [class.bonus-line--success]="v.bonus.state === 'Achieved'"
-              data-testid="gpo-bonus-line"
-            >
-              {{ footerBonusLine() }}
-            </p>
+            <ul class="breakdown">
+              @for (row of breakdownRows(); track row.label) {
+                <li
+                  class="breakdown-row"
+                  [class.breakdown-row--success]="row.tone === 'success'"
+                  data-testid="gpo-breakdown-row"
+                >
+                  <span data-testid="gpo-breakdown-label">{{ row.label }}</span>
+                  @if (row.amount !== null) {
+                    <span class="breakdown-amount" data-testid="gpo-breakdown-amount">{{ row.amount }}</span>
+                  }
+                </li>
+              }
+            </ul>
           </div>
 
           <span class="grand-total" data-testid="gpo-grand-total">{{ v.finalTotal | currency }}</span>

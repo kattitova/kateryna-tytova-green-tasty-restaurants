@@ -85,7 +85,7 @@ Recorded on 2026-11-04 during the Group Pre-Order modal task (task folder `.clau
 
 ### 3.3 The modal stylesheet is over the style budget (P2)
 
-- **Where:** `group-pre-order-modal.component.scss` (5.52 kB, warning at 4 kB, error at 10 kB).
+- **Where:** `group-pre-order-modal.component.scss` (6.28 kB on 2026-11-04 after the responsive layout, warning at 4 kB, error at 10 kB).
 - **Problem:** the build prints a style-budget warning for this file.
 - **Fix:** move the seats row and the participant row into child components with their own stylesheets.
 
@@ -180,3 +180,25 @@ Recorded on 2026-11-04 (task folder `.claude/work/2026-11-04-guest-resubmit-seat
 - **Where:** `frontend/restaurant-frontend-app/CLAUDE.md` §5.
 - **Problem:** the text about `@app/` paths and `Eager` does not agree with the code.
 - **Fix:** update the text to agree with the code.
+
+## 6. Group Pre-Order modal on narrow screens
+
+Recorded on 2026-11-04 (task folder `.claude/work/2026-11-04-group-modal-ui/`).
+
+### 6.1 The Submit button scrolls with the content on phones (P2)
+
+- **Where:** `group-pre-order-modal.component.scss` (below 560 px).
+- **Problem:** the whole modal card scrolls, so the owner must scroll to the end to see Grand Total and Submit.
+- **Fix:** make the footer sticky at the bottom of the card on narrow screens.
+
+### 6.2 The seats row has no arrows on phones (P2)
+
+- **Where:** `group-pre-order-modal.component.ts` (`SEATS_WITHOUT_SCROLL = 7`).
+- **Problem:** the value assumes an 800 px modal. On a phone the seats row overflows with no arrows. Touch scroll still works.
+- **Fix:** show the arrows when the row overflows, from a measured width.
+
+### 6.3 Interfaces in the modal component file (P2)
+
+- **Where:** `group-pre-order-modal.component.ts` (`DialogView`, `BonusBox`, `OwnItem`).
+- **Problem:** `CLAUDE.md` asks for no interfaces in a component file. Only `BreakdownRow` is in `models.ts`.
+- **Fix:** move the three interfaces to `models.ts`.

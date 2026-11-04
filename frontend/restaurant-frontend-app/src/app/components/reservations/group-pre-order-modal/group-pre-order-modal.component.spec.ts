@@ -282,4 +282,166 @@ describe('GroupPreOrderModalComponent', () => {
       expect(closed).toEqual([{ changed: false }]);
     });
   });
+
+  describe('layout', () => {
+    function byText(root: HTMLElement, selector: string, text: string): HTMLElement {
+      const found = Array.from(root.querySelectorAll<HTMLElement>(selector)).find((el) => el.textContent?.trim() === text);
+      expect(found).withContext(`${selector} "${text}"`).toBeDefined();
+      return found!;
+    }
+
+    function leafByText(root: HTMLElement, text: string): HTMLElement {
+      const found = Array.from(root.querySelectorAll<HTMLElement>('*')).find(
+        (el) => el.children.length === 0 && el.textContent?.trim() === text,
+      );
+      expect(found).withContext(`leaf "${text}"`).toBeDefined();
+      return found!;
+    }
+
+    it('puts the "Sent to Restaurant" badge in the title row next to the heading', async () => {
+      const root = await render(of('g1'), status('Submitted'));
+
+      const badge = leafByText(root, 'Sent to Restaurant');
+      const title = byText(root, 'h2', 'Group Pre-Order');
+
+      expect(badge.parentElement).toBe(title.parentElement);
+    });
+
+    it('sizes the badge to its text plus horizontal padding', async () => {
+      const root = await render(of('g1'), status('Submitted'));
+      const badge = leafByText(root, 'Sent to Restaurant');
+
+      const range = document.createRange();
+      range.selectNodeContents(badge);
+      const textWidth = range.getBoundingClientRect().width;
+      const style = getComputedStyle(badge);
+      const expected = textWidth + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+
+      expect(textWidth).toBeGreaterThan(0);
+      expect(Math.abs(badge.getBoundingClientRect().width - expected)).toBeLessThanOrEqual(2);
+    });
+
+    it('aligns the guests title with the card content (left edge of "Table")', async () => {
+      const root = await render(of('g1'));
+
+      const guests = byText(root, 'h3', "Guests' Pre-Orders").getBoundingClientRect();
+      const table = byText(root, 'h3', 'Table').getBoundingClientRect();
+
+      expect(Math.abs(guests.left - table.left)).toBeLessThanOrEqual(1);
+    });
+
+    it('aligns "Expand all" with the right edge of "Copy pre-order link"', async () => {
+      const root = await render(of('g1'));
+
+      const expand = byText(root, 'button', 'Expand all').getBoundingClientRect();
+      const copy = byText(root, 'button', 'Copy pre-order link').getBoundingClientRect();
+
+      expect(Math.abs(expand.right - copy.right)).toBeLessThanOrEqual(1);
+    });
+
+    it('keeps the "Table" header where it is: no own padding, 16 px from the card edge', async () => {
+      const root = await render(of('g1'));
+      const tableTitle = byText(root, 'h3', 'Table');
+      const header = tableTitle.parentElement!;
+      const card = header.closest('section')!;
+      const copy = byText(root, 'button', 'Copy pre-order link');
+
+      expect(parseFloat(getComputedStyle(header).paddingLeft)).toBe(0);
+      expect(parseFloat(getComputedStyle(header).paddingRight)).toBe(0);
+      expect(tableTitle.getBoundingClientRect().left - card.getBoundingClientRect().left).toBeCloseTo(16, 0);
+      expect(card.getBoundingClientRect().right - copy.getBoundingClientRect().right).toBeCloseTo(16, 0);
+    });
+  });
+
+  describe('grand total breakdown', () => {
+    const MINUS = '−';
+    type Row = [string, string | null];
+
+    function rows(root: HTMLElement): Row[] {
+      return Array.from(root.querySelectorAll('[data-testid="gpo-breakdown-row"]')).map((row) => [
+        row.querySelector('[data-testid="gpo-breakdown-label"]')?.textContent?.trim() ?? '',
+        row.querySelector('[data-testid="gpo-breakdown-amount"]')?.textContent?.trim() ?? null,
+      ]);
+    }
+
+    function withBonus(bonus: GroupBonus): GroupStatusResponse {
+      return { ...status('Open'), bonus };
+    }
+
+    it('lists one row per item with the amount apart from the label (10% discount achieved)', async () => {
+      const root = await render(of('g1'));
+
+      expect(rows(root)).toEqual([
+        ['My pre-order', '$27.00'],
+        ["Guests' pre-orders (2)", '$109.00'],
+        ['Total before discount', '$136.00'],
+        [`Group discount ${MINUS}10% applied`, `${MINUS}$13.60`],
+      ]);
+    });
+
+    it('renders every row as a list item and every amount as a no-wrap element', async () => {
+      const root = await render(of('g1'));
+
+      const items = Array.from(root.querySelectorAll('[data-testid="gpo-breakdown-row"]'));
+      expect(items.length).toBe(4);
+      items.forEach((item) => expect(item.tagName).toBe('LI'));
+      const amounts = Array.from(root.querySelectorAll<HTMLElement>('[data-testid="gpo-breakdown-amount"]'));
+      expect(amounts.length).toBe(4);
+      amounts.forEach((amount) => expect(getComputedStyle(amount).whiteSpace).toBe('nowrap'));
+    });
+
+    it('shows the unlock amount of a 10% discount that is still in progress', async () => {
+      const root = await render(
+        of('g1'),
+        withBonus({ state: 'InProgress', tier: 'TenPercentDiscount', discountPercent: 10, deadline: null }),
+      );
+
+      expect(rows(root)).toEqual([
+        ['My pre-order', '$27.00'],
+        ["Guests' pre-orders (2)", '$109.00'],
+        [`Group discount ${MINUS}10% unlocks at 3 of 3`, `${MINUS}$13.60`],
+      ]);
+    });
+
+    it('shows a free dessert in progress as a row without an amount', async () => {
+      const root = await render(
+        of('g1'),
+        withBonus({ state: 'InProgress', tier: 'FreeDessert', discountPercent: 0, deadline: null }),
+      );
+
+      expect(rows(root).at(-1)).toEqual(['Free dessert unlocks at 3 of 3', null]);
+    });
+
+    it('shows an achieved free dessert as a row without an amount element', async () => {
+      const root = await render(
+        of('g1'),
+        withBonus({ state: 'Achieved', tier: 'FreeDessert', discountPercent: 0, deadline: null }),
+      );
+
+      expect(rows(root)).toEqual([
+        ['My pre-order', '$27.00'],
+        ["Guests' pre-orders (2)", '$109.00'],
+        ['Free dessert for the table', null],
+      ]);
+    });
+
+    it('shows a missed bonus as a row without an amount', async () => {
+      const root = await render(
+        of('g1'),
+        withBonus({ state: 'Missed', tier: 'TenPercentDiscount', discountPercent: 10, deadline: null }),
+      );
+
+      expect(rows(root).at(-1)).toEqual(['Group discount — deadline passed', null]);
+    });
+
+    it('shows a dash for the owner row when the owner has not ordered', async () => {
+      const emptyOwner: GroupSessionsResponse = {
+        ...SESSIONS,
+        owner: { ...SESSIONS.owner, items: [], total: 0, isSubmitted: false },
+      };
+      const root = await render(of('g1'), status('Open'), emptyOwner);
+
+      expect(rows(root)[0]).toEqual(['My pre-order', '—']);
+    });
+  });
 });
