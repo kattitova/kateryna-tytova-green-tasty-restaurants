@@ -70,7 +70,10 @@ export class PreOrdersService {
     return this.http.post<Order>(`${this.baseUrl}/orders`, createOrderRequest);
   }
 
-  editPreOrderByReservationId(reservationId: string, order: Order) {
+  editPreOrderByReservationId(
+    reservationId: string,
+    order: { orderItems: { dish: { id: string }; quantity: number }[] },
+  ) {
     const orderItems = order.orderItems.map((item) => ({
       dishId: item.dish.id,
       quantity: item.quantity,

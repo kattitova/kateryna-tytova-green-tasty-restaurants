@@ -65,11 +65,20 @@ export class GroupOrdersMockStore {
 
   snapshot(): GroupSessionsResponse {
     const participants = this.participants.map((p) => structuredClone({ ...p, total: sum(p) }));
-    return { participants, total: participants.reduce((acc, p) => acc + p.total, 0) };
+    const owner =
+      participants.find((p) => p.type === 'Owner') ??
+      ({ id: 'owner', type: 'Owner', name: 'Owner', items: [], total: 0, isSubmitted: false } satisfies Participant);
+    return { participants, total: participants.reduce((acc, p) => acc + p.total, 0), owner };
   }
 
   groupStatus(): GroupStatusResponse {
-    return { currentParticipants: this.participants.length, maxCapacity: this.maxCapacity, status: this.status };
+    return {
+      currentParticipants: this.participants.length,
+      maxCapacity: this.maxCapacity,
+      status: this.status,
+      orderedCount: this.participants.filter((p) => p.isSubmitted).length,
+      bonus: { state: 'InProgress', tier: 'TenPercentDiscount', discountPercent: 10, deadline: null },
+    };
   }
 
   submit(reservationId: string): SubmittedDish[] {
