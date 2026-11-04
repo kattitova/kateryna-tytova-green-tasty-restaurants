@@ -10,6 +10,11 @@
         {{ store.inviteLoading() ? 'Retrying...' : 'Try again' }}
     </button>
 </section>
+} @else if (store.inviteError() === 'limitExceeded') {
+<section class="invite-retry" role="alert">
+    <h1>This invitation can’t be used</h1>
+    <p>{{ store.inviteErrorMessage() || 'Guest limit exceeded for this reservation.' }}</p>
+</section>
 } @else {
 <!-- green info strip + cart icon -->
 <div class="reservation-strip">
@@ -98,7 +103,7 @@
     </div>
 
 <!-- mandatory modal: show until name is set -->
-@if (!store.guestName()) {
+@if (!store.guestName() && !!store.inviteVm() && !store.inviteLoading()) {
 <app-guest-name-modal [invite]="store.inviteVm()" (confirmed)="store.join($event)" (closed)="noop()" />
 }
 

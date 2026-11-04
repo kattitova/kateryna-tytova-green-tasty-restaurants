@@ -33,7 +33,8 @@ export class GuestPreorderStore {
 
     readonly invite = signal<GuestInvite | null>(null);
     readonly inviteLoading = signal(false);
-    readonly inviteError = signal<'expired' | 'retryable' | null>(null);
+    readonly inviteError = signal<'expired' | 'limitExceeded' | 'retryable' | null>(null);
+    readonly inviteErrorMessage = signal<string | null>(null);
 
     readonly guestName = signal<string>('');
     readonly status = signal<GuestPreorderStatus>('active');
@@ -115,6 +116,7 @@ export class GuestPreorderStore {
     async loadInviteByToken(token: string) {
         this.inviteLoading.set(true);
         this.inviteError.set(null);
+        this.inviteErrorMessage.set(null);
 
         try {
             const inv = await firstValueFrom(this.guestInviteService.getInvite$(token));
@@ -122,7 +124,20 @@ export class GuestPreorderStore {
         } catch (error) {
             this.invite.set(null);
             const status = error instanceof HttpErrorResponse ? error.status : null;
-            this.inviteError.set(status === 404 || status === 410 ? 'expired' : 'retryable');
+            const backendMessage = this.extractBackendErrorMessage(error);
+
+            if (status === 404 || status === 410) {
+                this.inviteError.set('expired');
+                return;
+            }
+
+            if (backendMessage === 'Guest limit exceeded for this reservation.') {
+                this.inviteError.set('limitExceeded');
+                this.inviteErrorMessage.set(backendMessage);
+                return;
+            }
+
+            this.inviteError.set('retryable');
         } finally {
             this.inviteLoading.set(false);
         }
@@ -339,6 +354,18 @@ export class GuestPreorderStore {
         part: 'guestName' | 'cart' | 'status' | 'guestSessionId' | 'guestSessionToken'
     ) {
         return `guestPreorder:${ctx}:${part}`;
+    }
+
+    private extractBackendErrorMessage(error: unknown): string | null {
+        if (!(error instanceof HttpErrorResponse)) return null;
+
+        const payload = error.error as { message?: unknown; error?: unknown } | null;
+        if (!payload || typeof payload !== 'object') return null;
+
+        if (typeof payload.message === 'string') return payload.message;
+        if (typeof payload.error === 'string') return payload.error;
+
+        return null;
     }
 
 }

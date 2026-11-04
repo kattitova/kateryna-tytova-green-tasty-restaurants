@@ -65,6 +65,34 @@ describe('GuestPreOrderPageComponent', () => {
     expect(cartButton()?.getAttribute('aria-label')).toBe('Open cart');
   });
 
+  it('shows a loader text and no guest-name modal while invite details are loading', () => {
+    store.inviteLoading.set(true);
+    store.inviteError.set(null);
+    store.invite.set(null);
+
+    fixture.detectChanges();
+
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.textContent).toContain('Loading reservation details...');
+    expect(root.querySelector('app-guest-name-modal')).toBeNull();
+  });
+
+  it('shows guest limit exceeded message without a retry button', () => {
+    store.inviteLoading.set(false);
+    store.invite.set(null);
+    store.inviteError.set('limitExceeded');
+    store.inviteErrorMessage.set('Guest limit exceeded for this reservation.');
+
+    fixture.detectChanges();
+
+    const root = fixture.nativeElement as HTMLElement;
+    const text = root.textContent ?? '';
+
+    expect(text).toContain('This invitation can’t be used');
+    expect(text).toContain('Guest limit exceeded for this reservation.');
+    expect(text).not.toContain('Try again');
+  });
+
   describe('when the pre-order is submitted', () => {
     const root = (): HTMLElement => fixture.nativeElement as HTMLElement;
 
