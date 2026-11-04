@@ -158,6 +158,10 @@
   flex-direction: column;
   gap: 2rem;
 
+  app-dish-modal {
+    position: absolute;
+  }
+
   .dish-cards {
     width: 100%;
     display: flex;
