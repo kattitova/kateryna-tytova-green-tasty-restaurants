@@ -32,7 +32,7 @@
   background-color: color.$neutral-100;
   border: 1px solid color.$shadow;
   border-radius: 1.5rem;
-  width: auto;
+  width: clamp(400px, 500px, 50vw);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
