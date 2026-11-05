@@ -22,6 +22,7 @@ I built this project during **EPAM IT Marathon 6.0**.
 - [Deployment](#deployment)
 - [My marathon task: Group Pre-Order](#my-marathon-task-group-pre-order)
 - [Bug fixes](#bug-fixes)
+- [Loading states](#loading-states)
 - [Repository layout](#repository-layout)
 - [Development](#development)
 
@@ -128,29 +129,43 @@ While the group is still ordering, the modal shows the bonus that the group can 
 
 Bugs that I found and fixed during the marathon:
 
-| Area            | Fix                                                                                                                                                                         |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Group bonus     | The bonus existed only in the owner's modal. Now the group submit stores the bonus on the order.                                                                            |
-| Reservations    | A change of the guest count did not create or close the group. Now an edit of the reservation keeps the group in sync.                                                      |
-| Guest pre-order | A guest could change the pre-order after the submit. Now the submitted guest pre-order is final.                                                                            |
-| Group modal     | Fixed the modal layout on narrow screens.                                                                                                                                   |
-| Auth            | The owner's requests to `/guest/groups/...` got **401**, because the token interceptor skipped every `/guest/` URL. Now the owner routes send the sign-in token.            |
-| Group sessions  | `DELETE` of a guest session did not follow the API contract. Now only the owner can remove a guest, the owner session stays, and the response returns the remaining guests. |
-| API Gateway     | Fixed a wrong path for the group sessions endpoint.                                                                                                                         |
-| Pre-order flow  | The pre-order banner showed the table UUID instead of the table number. "Add dish" in the cart did not open the menu in pre-order mode.                                     |
-| Cart            | A cancelled reservation left its pre-order in the cart. Now the reservation cancel also cancels the pre-order. The cart shows the address and time instead of an order ID.  |
-| Cart            | I redesigned the cart (Figma screens C1/C2). A group owner saves the own order instead of submitting it alone, so the group pre-order has no duplicates.                    |
-| Reservations    | The owner seat in the group pre-order tracker had a solid green ring before the owner made an order. It now shows a gray dashed ring until the owner orders.                 |
-| Main page       | `app-dish-modal` was part of the flex flow and created an extra gap. The modal host now stays out of that flow.                                                            |
+| Area            | Fix                                                                                                                                                                           |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Group bonus     | The bonus existed only in the owner's modal. Now the group submit stores the bonus on the order.                                                                              |
+| Reservations    | A change of the guest count did not create or close the group. Now an edit of the reservation keeps the group in sync.                                                        |
+| Guest pre-order | A guest could change the pre-order after the submit. Now the submitted guest pre-order is final.                                                                              |
+| Group modal     | Fixed the modal layout on narrow screens.                                                                                                                                     |
+| Auth            | The owner's requests to `/guest/groups/...` got **401**, because the token interceptor skipped every `/guest/` URL. Now the owner routes send the sign-in token.              |
+| Group sessions  | `DELETE` of a guest session did not follow the API contract. Now only the owner can remove a guest, the owner session stays, and the response returns the remaining guests.   |
+| API Gateway     | Fixed a wrong path for the group sessions endpoint.                                                                                                                           |
+| Pre-order flow  | The pre-order banner showed the table UUID instead of the table number. "Add dish" in the cart did not open the menu in pre-order mode.                                       |
+| Cart            | A cancelled reservation left its pre-order in the cart. Now the reservation cancel also cancels the pre-order. The cart shows the address and time instead of an order ID.    |
+| Cart            | I redesigned the cart (Figma screens C1/C2). A group owner saves the own order instead of submitting it alone, so the group pre-order has no duplicates.                      |
+| Reservations    | The owner seat in the group pre-order tracker had a solid green ring before the owner made an order. It now shows a gray dashed ring until the owner orders.                  |
+| Main page       | `app-dish-modal` was part of the flex flow and created an extra gap. The modal host now stays out of that flow.                                                               |
 | Group modal     | `app-confirm-dialog` added an extra flex gap in the group pre-order modal. The host now uses `display: contents`, and the overlay stays visible.                              |
-| Reservations    | Reservation times were mixed between 12-hour and 24-hour formats. Reservation cards and confirmation now use a 24-hour format.                                              |
+| Reservations    | Reservation times were mixed between 12-hour and 24-hour formats. Reservation cards and confirmation now use a 24-hour format.                                                |
 | Guest pre-order | Re-opening a full guest invite showed a generic retry error and flashed the name modal before invite loading. The page now shows a relevant limit message and a loader first. |
-| Menu and dishes | A fallback image for dishes with no image. Aligned quantity buttons. Menu block styles. The hover cursor on dish cards.                                                     |
-| Reservations    | Styles of the edit reservation confirmation.                                                                                                                                |
-| Config          | Fixed the backend environment link in the frontend configuration.                                                                                                           |
-| Tests           | Fixed or replaced old frontend specs that no longer matched the app. The suite now has 0 failed tests.                                                                      |
+| Menu and dishes | A fallback image for dishes with no image. Aligned quantity buttons. Menu block styles. The hover cursor on dish cards.                                                       |
+| Reservations    | Styles of the edit reservation confirmation.                                                                                                                                  |
+| Main page       | A click on a popular dish card sent the user back to `/main`, because the app has no `/dish/:id` route. Now the card opens the dish modal (click, Enter or Space).            |
+| Menu            | After the user picked a category, the only way to see all dishes was a second click on the same category. Now "All dishes" is the first button on `/menu`.                    |
+| Guest pre-order | "Create New Pre-Order" after the submit took a new seat in the group. The button is gone. The guest sees a note that the pre-order is final.                                  |
+| Group modal     | Fixed the status badge width, the padding of the "Guests' Pre-Orders" header, the wrapping of the Grand Total rows and the footer layout. Fixed the confirm dialog position.  |
+| Cart            | The cart showed the pre-orders of cancelled reservations. Now it hides them, and the empty-cart state follows the orders that it shows.                                       |
+| Pre-order flow  | The "Save Pre-Order" toast had no "Success" title. The owner's "dish added" toast did not show the dish name.                                                                 |
 
 Known open items are in [`docs/tech-debt.md`](docs/tech-debt.md), [`backend/.../docs/tech-debt.md`](backend/restaurant-backend-app/docs/tech-debt.md) and [`frontend/.../docs/tech-debt.md`](frontend/restaurant-frontend-app/docs/tech-debt.md).
+
+---
+
+## Loading states
+
+To improve the UX while the app waits for the API, I added loading indicators:
+
+- **Skeleton loaders** on the main page (popular dishes and locations) and on the menu page (dish cards). The skeleton cards have the same layout as the real cards, so the page does not jump when the data arrives. They are hidden from screen readers and are not interactive.
+- **Spinners** (the shared `app-loading-spinner` component) in the cart, on the Reservations page and in the Group Pre-Order modal. Each spinner has its own message, for example "Loading your orders...".
+- **Loader before the name form.** The guest invite page shows a loader first, so the name modal does not flash before the invite loads.
 
 ---
 
